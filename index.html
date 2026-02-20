@@ -84,9 +84,9 @@
 
       // Caption piece offsets relative to the caption area origin
       czy:      { x: 0,   y: 0 },
-      zaorski:  { x: 195, y: 10 },
-      sie:      { x: 0,   y: 105 },
-      skonczyl: { x: 145, y: 105 },
+      zaorski:  { x: 210, y: 1 },
+      sie:      { x: 0,   y: 127 },
+      skonczyl: { x: 175, y: 125 },
     };
     // =====================================================
 
@@ -141,11 +141,11 @@
       el.style.opacity = opacity;
     }
 
-    const BOB_PERIOD = 2000;  // ms per full cycle
-    const BOB_AMPLITUDE = 15; // degrees
+    const BOB_PERIOD = 4000;  // ms per full cycle
+    const BOB_AMPLITUDE = 5; // degrees
 
     function bobAngle(now) {
-      return BOB_AMPLITUDE * Math.sin((2 * Math.PI * now) / BOB_PERIOD);
+      return BOB_AMPLITUDE * Math.sin((-2 * Math.PI * now) / BOB_PERIOD);
     }
 
     // Continuously update zaor512 bobbing rotation
@@ -196,19 +196,19 @@
 
       await Promise.all([
         // czy: top → down (vertical, easing distance = image height)
-        animate(500, t => {
+        animate(1000, t => {
           const e = easeOutCubic(t);
           const startY = czyFinal.y - SIZES.czy.h;
           place(elCzy, czyFinal.x, startY + (czyFinal.y - startY) * e, e);
         }),
         // zaorski: right → left (horizontal, easing distance = image width)
-        animate(500, t => {
+        animate(1500, t => {
           const e = easeOutCubic(t);
           const startX = zaorskiFinal.x + SIZES.zaorski.w;
           place(elZaorski, startX + (zaorskiFinal.x - startX) * e, zaorskiFinal.y, e);
         }),
         // sie: bottom → top (vertical, easing distance = image height)
-        animate(500, t => {
+        animate(2000, t => {
           const e = easeOutCubic(t);
           const startY = sieFinal.y + SIZES.sie.h;
           place(elSie, sieFinal.x, startY + (sieFinal.y - startY) * e, e);
@@ -224,7 +224,7 @@
       await new Promise(r => setTimeout(r, 2000));
 
       const skonczylFinal = finalPos('skonczyl');
-      await animate(3000, t => {
+      await animate(1500, t => {
         const e = easeOutCubic(t);
         const startX = skonczylFinal.x + SIZES.skonczyl.w;
         place(elSkonczyl, startX + (skonczylFinal.x - startX) * e, skonczylFinal.y, e);
