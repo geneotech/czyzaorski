@@ -5,41 +5,268 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>czyzaorskisieskonczyl.info</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #0a0a0a;
+      background: #000;
       font-family: 'Arial', sans-serif;
       color: #fff;
+      overflow-x: hidden;
     }
-
-    h1 {
+    #bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('bg.jpg') center/cover no-repeat;
+      opacity: 0;
+      z-index: 0;
+    }
+    #content {
+      position: relative;
+      z-index: 1;
+    }
+    #images-section {
+      position: relative;
+    }
+    .anim-img {
+      position: absolute;
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    #profit-section {
+      text-align: center;
+      padding: 2rem 0;
+    }
+    #profit-section h1 {
       font-size: 3rem;
       font-weight: bold;
-      text-align: center;
       margin-bottom: 0.5em;
       letter-spacing: 0.02em;
       color: #e0e0e0;
     }
-
     #profit {
       font-size: 5rem;
       font-weight: bold;
-      text-align: center;
       color: #4caf50;
       letter-spacing: 0.03em;
     }
   </style>
 </head>
 <body>
-  <h1>All time profit</h1>
-  <div id="profit"></div>
+  <div id="bg"></div>
+  <div id="content">
+    <div id="images-section">
+      <img id="zaor" class="anim-img" src="zaor512.png">
+      <img id="czy" class="anim-img" src="czy.png">
+      <img id="img-zaorski" class="anim-img" src="zaorski.png">
+      <img id="sie" class="anim-img" src="sie.png">
+      <img id="skonczyl" class="anim-img" src="skonczyl.png">
+    </div>
+    <div id="profit-section">
+      <h1>All time profit</h1>
+      <div id="profit"></div>
+    </div>
+  </div>
 
   <script>
+    // =====================================================
+    // CONFIGURABLE OFFSETS — adjust these to taste
+    // =====================================================
+    const LAYOUT = {
+      // zaor512.png final position (top-left corner of the page)
+      zaor: { x: 20, y: 20 },
+
+      // Gap between zaor512's right edge and the caption area
+      captionGapX: 20,
+
+      // Vertical offset of caption area relative to zaor512's top
+      captionBaseY: 100,
+
+      // Caption piece offsets relative to the caption area origin
+      czy:      { x: 0,   y: 0 },
+      zaorski:  { x: 195, y: 10 },
+      sie:      { x: 0,   y: 105 },
+      skonczyl: { x: 145, y: 105 },
+    };
+    // =====================================================
+
+    // Image natural sizes (used for easing distance & layout)
+    const SIZES = {
+      zaor:     { w: 512, h: 512 },
+      czy:      { w: 191, h: 99 },
+      zaorski:  { w: 402, h: 77 },
+      sie:      { w: 141, h: 94 },
+      skonczyl: { w: 488, h: 98 },
+    };
+
+    // Ease-out cubic: fast start, slow finish — good for slide-ins
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    // Generic animate helper using requestAnimationFrame
+    function animate(duration, onTick) {
+      return new Promise(resolve => {
+        const start = performance.now();
+        function frame(now) {
+          const elapsed = now - start;
+          const raw = Math.min(elapsed / duration, 1);
+          onTick(raw);
+          if (raw < 1) requestAnimationFrame(frame);
+          else resolve();
+        }
+        requestAnimationFrame(frame);
+      });
+    }
+
+    // Compute absolute positions for caption pieces
+    function captionOrigin() {
+      return {
+        x: LAYOUT.zaor.x + SIZES.zaor.w + LAYOUT.captionGapX,
+        y: LAYOUT.zaor.y + LAYOUT.captionBaseY,
+      };
+    }
+
+    function finalPos(key) {
+      if (key === 'zaor') return { x: LAYOUT.zaor.x, y: LAYOUT.zaor.y };
+      const co = captionOrigin();
+      const off = LAYOUT[key];
+      return { x: co.x + off.x, y: co.y + off.y };
+    }
+
+    // Place an element at (x, y) with optional rotation & opacity using transforms
+    function place(el, x, y, opacity, rotation) {
+      const rot = rotation !== undefined ? rotation : 0;
+      el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + rot + 'deg)';
+      el.style.opacity = opacity;
+    }
+
+    const BOB_PERIOD = 2000;  // ms per full cycle
+    const BOB_AMPLITUDE = 15; // degrees
+
+    function bobAngle(now) {
+      return BOB_AMPLITUDE * Math.sin((2 * Math.PI * now) / BOB_PERIOD);
+    }
+
+    // Continuously update zaor512 bobbing rotation
+    function startBobbing(el, getBasePos) {
+      function tick(now) {
+        const pos = getBasePos();
+        place(el, pos.x, pos.y, pos.opacity, bobAngle(now));
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    // =====================================================
+    // MAIN ANIMATION SEQUENCE
+    // =====================================================
+    async function run() {
+      const bg = document.getElementById('bg');
+      const elZaor = document.getElementById('zaor');
+      const elCzy = document.getElementById('czy');
+      const elZaorski = document.getElementById('img-zaorski');
+      const elSie = document.getElementById('sie');
+      const elSkonczyl = document.getElementById('skonczyl');
+
+      // --- 1. Fade in background from black (500ms) ---
+      await animate(500, t => { bg.style.opacity = easeOutCubic(t); });
+
+      // --- 2. Slide zaor512 from left + start bobbing ---
+      const zaorFinal = finalPos('zaor');
+      const zaorStartX = zaorFinal.x - SIZES.zaor.w; // starts one image-width to the left
+      const zaorState = { x: zaorStartX, y: zaorFinal.y, opacity: 0 };
+
+      // Start bobbing loop — it reads from zaorState
+      startBobbing(elZaor, () => zaorState);
+
+      await animate(1000, t => {
+        const e = easeOutCubic(t);
+        zaorState.x = zaorStartX + (zaorFinal.x - zaorStartX) * e;
+        zaorState.y = zaorFinal.y;
+        zaorState.opacity = e; // alpha proportional to progress
+      });
+      zaorState.x = zaorFinal.x;
+      zaorState.opacity = 1;
+
+      // --- 3. Simultaneously animate czy, zaorski, sie (500ms) ---
+      const czyFinal = finalPos('czy');
+      const zaorskiFinal = finalPos('zaorski');
+      const sieFinal = finalPos('sie');
+
+      await Promise.all([
+        // czy: top → down (vertical, easing distance = image height)
+        animate(500, t => {
+          const e = easeOutCubic(t);
+          const startY = czyFinal.y - SIZES.czy.h;
+          place(elCzy, czyFinal.x, startY + (czyFinal.y - startY) * e, e);
+        }),
+        // zaorski: right → left (horizontal, easing distance = image width)
+        animate(500, t => {
+          const e = easeOutCubic(t);
+          const startX = zaorskiFinal.x + SIZES.zaorski.w;
+          place(elZaorski, startX + (zaorskiFinal.x - startX) * e, zaorskiFinal.y, e);
+        }),
+        // sie: bottom → top (vertical, easing distance = image height)
+        animate(500, t => {
+          const e = easeOutCubic(t);
+          const startY = sieFinal.y + SIZES.sie.h;
+          place(elSie, sieFinal.x, startY + (sieFinal.y - startY) * e, e);
+        }),
+      ]);
+
+      // Snap final positions
+      place(elCzy, czyFinal.x, czyFinal.y, 1);
+      place(elZaorski, zaorskiFinal.x, zaorskiFinal.y, 1);
+      place(elSie, sieFinal.x, sieFinal.y, 1);
+
+      // --- 4. Wait 2 seconds, then ease skonczyl very slowly (3000ms) ---
+      await new Promise(r => setTimeout(r, 2000));
+
+      const skonczylFinal = finalPos('skonczyl');
+      await animate(3000, t => {
+        const e = easeOutCubic(t);
+        const startX = skonczylFinal.x + SIZES.skonczyl.w;
+        place(elSkonczyl, startX + (skonczylFinal.x - startX) * e, skonczylFinal.y, e);
+      });
+      place(elSkonczyl, skonczylFinal.x, skonczylFinal.y, 1);
+
+      // --- 5. Position profit section below images ---
+      layoutProfitSection();
+    }
+
+    // Position profit section centered under the image group
+    function layoutProfitSection() {
+      const section = document.getElementById('images-section');
+      const profitSection = document.getElementById('profit-section');
+
+      // Compute total image group bounds
+      const rightEdge = Math.max(
+        LAYOUT.zaor.x + SIZES.zaor.w,
+        finalPos('zaorski').x + SIZES.zaorski.w,
+        finalPos('skonczyl').x + SIZES.skonczyl.w
+      );
+      const bottomEdge = Math.max(
+        LAYOUT.zaor.y + SIZES.zaor.h,
+        finalPos('sie').y + SIZES.sie.h,
+        finalPos('skonczyl').y + SIZES.skonczyl.h
+      );
+
+      // Set images-section height so profit flows below
+      section.style.height = (bottomEdge + 20) + 'px';
+
+      // Center profit within the image group width
+      profitSection.style.position = 'relative';
+      profitSection.style.width = rightEdge + 'px';
+      profitSection.style.textAlign = 'center';
+    }
+
+    // Kick off after images load
+    window.addEventListener('load', run);
+
+    // =====================================================
+    // PROFIT COUNTER (unchanged logic)
+    // =====================================================
     const BASE = 27249100;
     const FLUCTUATION_RANGE = 2000;
 
