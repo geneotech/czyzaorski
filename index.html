@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>czyzaorskisieskonczyl.info</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0a0a0a;
+      font-family: 'Arial', sans-serif;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 0.5em;
+      letter-spacing: 0.02em;
+      color: #e0e0e0;
+    }
+
+    #profit {
+      font-size: 5rem;
+      font-weight: bold;
+      text-align: center;
+      color: #4caf50;
+      letter-spacing: 0.03em;
+    }
+  </style>
+</head>
+<body>
+  <h1>All time profit</h1>
+  <div id="profit"></div>
+
+  <script>
+    const BASE = 27249100;
+    const FLUCTUATION_RANGE = 2000;
+
+    function formatPLN(value) {
+      const rounded = Math.round(value);
+      const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '';
+      const abs = Math.abs(rounded);
+      const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+      return sign + formatted + ' PLN';
+    }
+
+    function updateProfit() {
+      const delta = (Math.random() - 0.5) * FLUCTUATION_RANGE;
+      const current = BASE + delta;
+      document.getElementById('profit').textContent = formatPLN(current);
+    }
+
+    updateProfit();
+    setInterval(updateProfit, 1000);
+  </script>
+</body>
+</html>
