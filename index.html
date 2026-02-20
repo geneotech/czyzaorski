@@ -249,7 +249,7 @@
     .trade-info-label {
       color: #888;
       display: inline-block;
-      width: 45px;
+      width: 50px;
       text-align: right;
     }
     .trade-info-price {
@@ -258,6 +258,9 @@
       margin-left: 6px;
       display: inline-block;
       width: 90px;
+      /* nudge monospace prices down to visually align with proportional labels */
+      position: relative;
+      top: 1px;
     }
     .trade-info-pct {
       font-family: 'Courier New', Consolas, monospace;
@@ -509,9 +512,11 @@
       var abs = Math.abs(rounded);
       return sign + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' PLN';
     }
-    function formatPct(openP, closeP) {
+    function formatPct(openP, closeP, type, leverage) {
       if (openP === 0) return '(+0.00%)';
       var pct = ((closeP - openP) / openP) * 100;
+      if (type === 'short') pct = -pct;
+      if (leverage) pct *= leverage;
       var abs = Math.abs(pct);
       if (abs < 0.005) return '(+0.00%)';
       // Always show exactly 3 visible digits (excluding decimal point)
@@ -709,11 +714,11 @@
 
       if (!trade.open) {
         // Show pct inside pnl box for closed trades
-        var pctText = formatPct(trade.openPrice, trade.closePrice);
+        var pctText = formatPct(trade.openPrice, trade.closePrice, trade.type, trade.leverage);
         updatePnlBox(pnlBox, trade.pnl, pctText);
       } else {
         // Show pct inside pnl box for open trades too
-        var pctText = formatPct(trade.openPrice, trade.currentPrice);
+        var pctText = formatPct(trade.openPrice, trade.currentPrice, trade.type, trade.leverage);
         updatePnlBox(pnlBox, trade.pnl, pctText);
       }
 
@@ -793,7 +798,7 @@
     function updateSimulation() {
       MOCK_TRADES.forEach(function(t) {
         if (t.open) {
-          t.pnl += (detRandom() - 0.5) * TRADE_FLUCTUATION_RANGE;
+          t.pnl += (detRandom() - 0.5) * TRADE_FLUCTUATION_RANGE * (t.leverage || 1);
           t.currentPrice += (detRandom() - 0.5) * t.currentPrice * 0.001;
         }
       });
@@ -801,10 +806,10 @@
         var pnlEl = document.getElementById('trade-pnl-' + i);
         if (pnlEl) {
           if (!t.open) {
-            var pctText = formatPct(t.openPrice, t.closePrice);
+            var pctText = formatPct(t.openPrice, t.closePrice, t.type, t.leverage);
             updatePnlBox(pnlEl, t.pnl, pctText);
           } else {
-            var pctText = formatPct(t.openPrice, t.currentPrice);
+            var pctText = formatPct(t.openPrice, t.currentPrice, t.type, t.leverage);
             updatePnlBox(pnlEl, t.pnl, pctText);
           }
         }
