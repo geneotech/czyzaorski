@@ -172,9 +172,15 @@
     .trade-left {
       display: flex;
       align-items: center;
-      flex-shrink: 1;
-      min-width: 0;
-      overflow: hidden;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .trade-right {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      margin-left: auto;
+      gap: 10px;
     }
     .trade-icon { width: 24px; height: 24px; margin-right: 10px; }
     .trade-pair {
@@ -205,22 +211,25 @@
     }
     .trade-info {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      justify-content: center;
       flex-shrink: 0;
-      margin-left: 12px;
       font-size: 0.95rem;
       white-space: nowrap;
+    }
+    .trade-info-row {
+      display: flex;
+      align-items: center;
     }
     .trade-info-label {
       color: #888;
       display: inline-block;
-      width: 40px;
+      width: 45px;
       text-align: right;
     }
     .trade-info-price {
       font-family: 'Courier New', Consolas, monospace;
       color: #fff;
-      margin-right: 10px;
       margin-left: 6px;
       display: inline-block;
       width: 90px;
@@ -230,7 +239,7 @@
       font-weight: bold;
     }
     .trade-card .pnl-box { font-size: 17px; width: 26ch; }
-    .trade-closed .pnl-box { font-size: 21px; width: 28ch; }
+    .trade-closed .pnl-box { font-size: 24px; width: 30ch; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
@@ -612,7 +621,7 @@
       buildTradeInfo(info, trade, index);
 
       left.appendChild(icon); left.appendChild(pairSpan);
-      left.appendChild(dirSpan); left.appendChild(levSpan); left.appendChild(info);
+      left.appendChild(dirSpan); left.appendChild(levSpan);
 
       // PnL box with percentage inside for closed trades
       var pnlBox = document.createElement('div');
@@ -634,26 +643,29 @@
         updatePnlBox(pnlBox, trade.pnl, pctText);
       }
 
-      card.appendChild(left); card.appendChild(pnlBox);
+      var right = document.createElement('div'); right.className = 'trade-right';
+      right.appendChild(info); right.appendChild(pnlBox);
+      card.appendChild(left); card.appendChild(right);
       return card;
     }
 
     function buildTradeInfo(el, trade, index) {
       el.innerHTML = '';
-      // Opening price
-      var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw.:'; el.appendChild(lbl);
-      var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSig(trade.openPrice); el.appendChild(price);
+      var row1 = document.createElement('div'); row1.className = 'trade-info-row';
+      var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw.:';
+      var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSig(trade.openPrice);
+      row1.appendChild(lbl); row1.appendChild(price); el.appendChild(row1);
+      var row2 = document.createElement('div'); row2.className = 'trade-info-row';
       if (trade.open) {
-        // Current price for open trades
-        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Cena:'; el.appendChild(lbl2);
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Cena:';
         var price2 = document.createElement('span'); price2.className = 'trade-info-price'; price2.id = 'trade-current-price-' + index;
-        price2.textContent = formatPriceSig(trade.currentPrice); el.appendChild(price2);
+        price2.textContent = formatPriceSig(trade.currentPrice);
       } else {
-        // Closing price for closed trades
-        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zamk.:'; el.appendChild(lbl2);
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zamk.:';
         var price2 = document.createElement('span'); price2.className = 'trade-info-price';
-        price2.textContent = formatPriceSig(trade.closePrice); el.appendChild(price2);
+        price2.textContent = formatPriceSig(trade.closePrice);
       }
+      row2.appendChild(lbl2); row2.appendChild(price2); el.appendChild(row2);
     }
 
     function startContinuousPulse() {
