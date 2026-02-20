@@ -3,62 +3,908 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>czyzaorskisieskonczyl.info</title>
+  <title>Czy zaorski się skończył?</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta property="og:title" content="Czy zaorski się skończył?">
+  <meta property="og:description" content="Czy zaorski się skończył?">
+  <meta property="og:image" content="https://czyzaorskisieskonczyl.info/zaor512.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Czy zaorski się skończył?">
+  <meta name="twitter:description" content="Czy zaorski się skończył?">
+  <meta name="twitter:image" content="https://czyzaorskisieskonczyl.info/zaor512.png">
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #0a0a0a;
+      background: #000;
       font-family: 'Arial', sans-serif;
       color: #fff;
+      overflow-x: hidden;
     }
-
-    h1 {
-      font-size: 3rem;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 0.5em;
-      letter-spacing: 0.02em;
-      color: #e0e0e0;
+    #bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('bg.jpg') center/cover no-repeat;
+      opacity: 0;
+      z-index: 0;
     }
-
-    #profit {
-      font-size: 5rem;
+    #content {
+      position: relative;
+      z-index: 1;
+    }
+    #images-section {
+      position: relative;
+      transform-origin: top left;
+    }
+    .anim-img {
+      position: absolute;
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+    #alltime-section {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 10px 16px;
+    }
+    .section-label {
+      font-size: 18px;
+      color: #aaa;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pnl-box {
+      box-sizing: content-box;
+      font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
-      text-align: center;
-      color: #4caf50;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid;
+      border-radius: 4px;
+      padding: 2px 10px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      width: 17ch;
+      flex-shrink: 0;
+    }
+    /* Hero image below all-time profit */
+    #hero-link {
+      position: absolute;
+      display: block;
+    }
+    #hero-link img {
+      display: block;
+      opacity: 0.7;
+    }
+    #hero-link:hover img {
+      opacity: 1;
+    }
+    #bigsb-section {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(60, 60, 255, 1.0);
+      border-radius: 6px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+    .bigsb-label {
+      font-size: 18px;
+      color: #aaa;
       letter-spacing: 0.03em;
+    }
+    .bigsb-ticker-link {
+      color: #8888ff;
+      text-decoration: underline;
+      opacity: 0.8;
+    }
+    .bigsb-ticker-link:hover {
+      opacity: 1;
+    }
+    .bigsb-value {
+      font-family: 'Courier New', Consolas, monospace;
+      font-weight: bold;
+      font-size: 20px;
+      color: #8888ff;
+    }
+    .bigsb-icon {
+      width: 28px;
+      height: 28px;
+    }
+    .trade-leverage {
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-weight: bold;
+      font-size: 0.8rem;
+      margin-left: 6px;
+      display: inline-block;
+      text-align: center;
+      padding: 2px 6px 2px 6px;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .trade-leverage-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0px;
+    }
+    #trades-section {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #e0e0e0;
+      margin-bottom: 12px;
+      letter-spacing: 0.02em;
+    }
+    #trades-list { overflow-y: auto; }
+    .pulse-dot-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 10px; height: 10px;
+      margin-left: 10px;
+    }
+    .pulse-dot {
+      position: absolute;
+      top: 0; left: 0;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .pulse-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .closed-label {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+    .trade-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid;
+      border-radius: 8px;
+      padding: 0 12px;
+      margin-bottom: 8px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    /* Closed trade cards have lower border opacity */
+    .trade-closed {
+      border-color: rgba(255, 255, 255, 0.18) !important;
+    }
+    .trade-left {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .trade-right {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      margin-left: auto;
+      gap: 10px;
+    }
+    .trade-icon { width: 24px; height: 24px; margin-right: 10px; }
+    .trade-pair {
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    /* Direction label with colored bg */
+    .trade-direction {
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-weight: bold;
+      font-size: 0.8rem;
+      display: inline-block;
+      width: 65px;
+      margin-left: 8px;
+      text-align: center;
+      padding: 2px 0 2px 0;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .trade-direction-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+    }
+    .trade-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .trade-open .trade-info {
+      font-size: 1.15rem;
+    }
+    .trade-info-row {
+      display: flex;
+      align-items: center;
+    }
+    .trade-info-label {
+      color: #888;
+      display: inline-block;
+      width: 50px;
+      text-align: right;
+    }
+    .trade-info-price {
+      font-family: 'Courier New', Consolas, monospace;
+      color: #fff;
+      margin-left: 6px;
+      display: inline-block;
+      width: 90px;
+      position: relative;
+    }
+    .trade-closed .trade-info-price {
+      /* closed cards use smaller font — 1px nudge is enough */
+      top: 1px;
+    }
+    .trade-open .trade-info-price {
+      /* open cards use larger font — needs 2px nudge */
+      top: 2px;
+    }
+    .trade-info-pct {
+      font-family: 'Courier New', Consolas, monospace;
+      font-weight: bold;
+    }
+    .trade-card .pnl-box { font-size: 17px; width: 23ch; }
+    .trade-closed .pnl-box { font-size: 28px; width: 23ch; }
+    /* PnL box with percentage inside */
+    .pnl-inner {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+    }
+    .pnl-value {
+      text-align: right;
+    }
+    .pnl-pct {
+      font-family: 'Courier New', Consolas, monospace;
+      text-align: left;
+      opacity: 0.8;
+    }
+    .trades-separator {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      margin: 12px 0;
+    }
+    #quote-section {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 12px;
+      font-style: italic;
+      color: #ccc;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      min-height: 80px;
+    }
+    #quote-text { display: inline; white-space: pre-wrap; }
+    #quote-cursor {
+      display: inline-block;
+      width: 8px; height: 1em;
+      background: #fff;
+      vertical-align: text-bottom;
+      margin-left: 1px;
+    }
+    #powered-by {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 1.5rem;
+      font-family: Lato, "Lucida Sans Unicode", "Trebuchet MS", sans-serif;
+      color: #ccc;
+    }
+    #powered-by a {
+      display: inline-flex;
+      align-items: center;
+      color: #ccc;
+      text-decoration: none;
+      opacity: 0.8;
+    }
+    #powered-by a:hover {
+      opacity: 1;
+    }
+    #powered-by img {
+      width: var(--gtrade-icon-size, 28px);
+      height: var(--gtrade-icon-size, 28px);
+    }
+    #powered-by .gtrade-name {
+      font-weight: bold;
+      text-rendering: optimizeLegibility;
+      letter-spacing: -0.5px;
+      margin-left: var(--gtrade-gap, 6px);
     }
   </style>
 </head>
 <body>
-  <h1>All time profit</h1>
-  <div id="profit"></div>
-
+  <div id="bg"></div>
+  <div id="content">
+    <div id="images-section">
+      <img id="zaor" class="anim-img" src="zaor512.png">
+      <img id="czy" class="anim-img" src="czy.png">
+      <img id="img-zaorski" class="anim-img" src="zaorski.png">
+      <img id="sie" class="anim-img" src="sie.png">
+      <img id="dots" class="anim-img" src="dots.png">
+      <img id="skonczyl" class="anim-img" src="skonczyl.png">
+      <div id="alltime-section">
+        <div class="section-label">All-time profit</div>
+        <div id="alltime-pnl" class="pnl-box" style="font-size:60px"></div>
+      </div>
+      <a id="hero-link" href="https://bigshortbets.com/" target="_blank" rel="noopener noreferrer">
+        <img id="hero-img" src="hero.png" alt="BigShortBets">
+      </a>
+      <div id="bigsb-section">
+        <span class="bigsb-label"><a id="bigsb-link" class="bigsb-ticker-link" href="#" target="_blank" rel="noopener noreferrer">$BIGSB</a> burned:</span>
+        <span id="bigsb-value" class="bigsb-value">0</span>
+        <img class="bigsb-icon" src="tokens/bigsb.webp" alt="BIGSB">
+      </div>
+    </div>
+    <div id="trades-section">
+      <div class="section-header">OTWARTE POZYCJE<span class="pulse-dot-wrapper"><span id="pulse-dot" class="pulse-dot"></span></span></div>
+      <div id="trades-list"></div>
+    </div>
+    <div id="quote-section">
+      <span id="quote-text"></span><span id="quote-cursor"></span>
+    </div>
+    <div id="powered-by">
+      <a href="https://gains.trade" target="_blank" rel="noopener noreferrer">
+        Trades powered by &nbsp; <img src="gtrade.svg" alt=""><span class="gtrade-name">gTrade</span>
+      </a>
+    </div>
+  </div>
   <script>
-    const BASE = 27249100;
-    const FLUCTUATION_RANGE = 2000;
+    var COLORS = {
+      profit: '#4caf50',
+      profitBright: '#7aff7e',
+      loss: '#e53935',
+      lossBright: '#ff7b78',
+    };
+    var LAYOUT = {
+      scale: 0.7,
+      zaor: { x: 20, y: 20 },
+      captionGapX: 20, captionBaseY: 100,
+      czy: { x: 0, y: 0 }, zaorski: { x: 210, y: 1 },
+      sie: { x: 0, y: 127 }, dots: { x: 145, y: 173 },
+      skonczyl: { x: 175, y: 125 },
+      alltimeProfit: { x: 0, y: 25 },
+      heroGap: 5,
+      tradesTopMargin: 40,
+      closedTradeHeight: 52, openTradeHeight: 80,
+      openPnlHeightRatio: 0.60,
+      closedPnlHeightRatio: 0.55,
+      heroWidth: 300, heroMarginLeft: 5,
+      bigsbGap: 10,
+      separatorHeight: 17, closedLabelHeight: 28,
+    };
+    var MAX_PNL_VALUE = 999999999;
+    var UPDATE_INTERVAL_MS = 2000;
+    // Pulse period should match update interval for exactly one cycle per update
+    var PULSE_PERIOD_MS = 2000;
+    var RING_DURATION_MS = 600;
+    var QUOTE_TEXT = 'Rol\u0105 spekulanta jest przywr\u00f3ci\u0107 rynkow\u0105 r\u00f3wnowag\u0119. S\u0105 przy tym emocje, jest zabawa, ale i ryzyko.\nJe\u015bli spekulant \u017ale oceni sytuacj\u0119, a punkt r\u00f3wnowagi jest w innym miejscu, to przegra.';
+    var QUOTE_BASE_INTERVAL = 100;
+    var QUOTE_VARIATION = 70;
+    var BIGSB_BURNED = 142857;
+    var BIGSB_URL = 'https://www.geckoterminal.com/eth/pools/0x149148acc3b06b8cc73af3a10e84189243a35925?utm_source=coingecko&utm_medium=referral&utm_campaign=livechart';
 
-    function formatPLN(value) {
-      const rounded = Math.round(value);
-      const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '';
-      const abs = Math.abs(rounded);
-      const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
-      return sign + formatted + ' PLN';
+    // Deterministic seeded PRNG (mulberry32) — change seed to get different reproducible sequences
+    var RNG_SEED = 42;
+    var _rngState = RNG_SEED;
+    function seedRandom() {
+      _rngState = RNG_SEED;
+    }
+    function detRandom() {
+      _rngState |= 0; _rngState = _rngState + 0x6D2B79F5 | 0;
+      var t = Math.imul(_rngState ^ _rngState >>> 15, 1 | _rngState);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
     }
 
-    function updateProfit() {
-      const delta = (Math.random() - 0.5) * FLUCTUATION_RANGE;
-      const current = BASE + delta;
-      document.getElementById('profit').textContent = formatPLN(current);
+    var TOKEN_ICONS = {
+      'XAU/USD': 'tokens/xau.svg', 'XAG/USD': 'tokens/xag.svg',
+      'BTC/USD': 'tokens/btc.svg', 'ETH/USD': 'tokens/eth.svg',
+    };
+    var MOCK_TRADES = [
+      { pair: 'XAU/USD', collateral: 500,   open: true,  type: 'short', openPrice: 2341.85, currentPrice: 2341.85, leverage: 200 },
+      { pair: 'XAG/USD', collateral: 2000,  open: false, type: 'long',  openPrice: 28.423,  closePrice: 29.105,   leverage: 50 },
+      { pair: 'BTC/USD', collateral: 50000, open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5,  leverage: 1.1 },
+      { pair: 'ETH/USD', collateral: 5000,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75,  leverage: 9.4 },
+    ];
+    // PnL = collateral × leverage × (price − open) / open; negated for shorts
+    function calcPnl(trade) {
+      var price = trade.open ? trade.currentPrice : trade.closePrice;
+      var diff = trade.type === 'short' ? (trade.openPrice - price) : (price - trade.openPrice);
+      return trade.collateral * trade.leverage * diff / trade.openPrice;
+    }
+    var SIZES = {
+      zaor: { w: 512, h: 512 }, czy: { w: 191, h: 99 },
+      zaorski: { w: 402, h: 77 }, sie: { w: 141, h: 94 },
+      dots: { w: 88, h: 28 }, skonczyl: { w: 488, h: 98 },
+    };
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function animate(duration, onTick) {
+      return new Promise(function(resolve) {
+        var start = performance.now();
+        function frame(now) {
+          var elapsed = now - start;
+          var raw = Math.min(elapsed / duration, 1);
+          onTick(raw);
+          if (raw < 1) requestAnimationFrame(frame); else resolve();
+        }
+        requestAnimationFrame(frame);
+      });
     }
 
-    updateProfit();
-    setInterval(updateProfit, 1000);
+    function captionOrigin() {
+      return { x: LAYOUT.zaor.x + SIZES.zaor.w + LAYOUT.captionGapX, y: LAYOUT.zaor.y + LAYOUT.captionBaseY };
+    }
+    function finalPos(key) {
+      if (key === 'zaor') return { x: LAYOUT.zaor.x, y: LAYOUT.zaor.y };
+      var co = captionOrigin(); var off = LAYOUT[key];
+      return { x: co.x + off.x, y: co.y + off.y };
+    }
+    function place(el, x, y, opacity, rotation) {
+      var rot = rotation !== undefined ? rotation : 0;
+      el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + rot + 'deg)';
+      el.style.opacity = opacity;
+    }
+    var BOB_PERIOD = 4000, BOB_AMPLITUDE = 5;
+    function bobAngle(now) { return BOB_AMPLITUDE * Math.sin((-2 * Math.PI * now) / BOB_PERIOD); }
+    function startBobbing(el, getBasePos) {
+      function tick(now) { var pos = getBasePos(); place(el, pos.x, pos.y, pos.opacity, bobAngle(now)); requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+    }
+
+    function hexToRgb(hex) {
+      return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+    }
+    function lerpColor(c1, c2, t) {
+      var a = hexToRgb(c1), b = hexToRgb(c2);
+      return 'rgb(' + Math.round(a[0]+(b[0]-a[0])*t) + ',' + Math.round(a[1]+(b[1]-a[1])*t) + ',' + Math.round(a[2]+(b[2]-a[2])*t) + ')';
+    }
+    function pulseT(now) { return (1 + Math.sin(2 * Math.PI * now / PULSE_PERIOD_MS)) / 2; }
+    function currentPnlColor(pnl, t) {
+      var base = pnl >= 0 ? COLORS.profit : COLORS.loss;
+      var bright = pnl >= 0 ? COLORS.profitBright : COLORS.lossBright;
+      return lerpColor(base, bright, t);
+    }
+
+    // Format price to 6 significant digits total
+    function formatPriceSig(value) {
+      var abs = Math.abs(value);
+      if (abs === 0) return '0.00000';
+      if (abs < 1) {
+        // For values < 1, count leading zeros then add 6 sig digits
+        var leadingZeros = Math.max(0, -Math.floor(Math.log10(abs)) - 1);
+        return value.toFixed(leadingZeros + 6);
+      }
+      var intDigits = Math.floor(Math.log10(abs)) + 1;
+      var decimals = Math.max(0, 6 - intDigits);
+      return value.toFixed(decimals);
+    }
+
+    function formatPnl(value) {
+      var rounded = Math.round(value);
+      rounded = Math.max(-MAX_PNL_VALUE, Math.min(MAX_PNL_VALUE, rounded));
+      var sign = rounded >= 0 ? '+' : '-';
+      var abs = Math.abs(rounded);
+      return sign + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' PLN';
+    }
+    function formatPct(openP, closeP, type, leverage) {
+      if (openP === 0) return '(+0.00%)';
+      var pct = ((closeP - openP) / openP) * 100;
+      if (type === 'short') pct = -pct;
+      if (leverage) pct *= leverage;
+      var abs = Math.abs(pct);
+      if (abs < 0.005) return '(+0.00%)';
+      // Always show exactly 3 visible digits (excluding decimal point)
+      var intDigits = Math.floor(abs).toString().length;
+      var decimals = Math.max(0, 3 - intDigits);
+      var formatted = abs.toFixed(decimals);
+      return '(' + (pct >= 0 ? '+' : '-') + formatted + '%)';
+    }
+    function pnlColor(value) { return value >= 0 ? COLORS.profit : COLORS.loss; }
+    function formatLeverage(lev) {
+      if (lev >= 10) return Math.round(lev) + 'x';
+      return lev.toFixed(1) + 'x';
+    }
+    function updatePnlBox(el, value, pctText) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      var color = pnlColor(value);
+      el.style.borderColor = color; el.style.color = color;
+      if (pctText !== undefined) {
+        el.innerHTML = '';
+        var inner = document.createElement('div'); inner.className = 'pnl-inner';
+        var pctSpan = document.createElement('div'); pctSpan.className = 'pnl-pct';
+        pctSpan.textContent = pctText;
+        inner.appendChild(pctSpan);
+        var valSpan = document.createElement('div'); valSpan.className = 'pnl-value';
+        valSpan.textContent = formatPnl(value);
+        inner.appendChild(valSpan);
+        el.appendChild(inner);
+      } else {
+        el.textContent = formatPnl(value);
+      }
+    }
+
+    function layoutSections() {
+      var section = document.getElementById('images-section');
+      var tradesSection = document.getElementById('trades-section');
+      var quoteSection = document.getElementById('quote-section');
+      var bottomEdge = Math.max(LAYOUT.zaor.y + SIZES.zaor.h, finalPos('sie').y + SIZES.sie.h, finalPos('skonczyl').y + SIZES.skonczyl.h);
+      section.style.transform = 'scale(' + LAYOUT.scale + ')';
+      section.style.height = (bottomEdge + 20) + 'px';
+      section.style.marginBottom = -((1 - LAYOUT.scale) * (bottomEdge + 20)) + 'px';
+      var co = captionOrigin();
+      var captionBottom = Math.max(finalPos('skonczyl').y + SIZES.skonczyl.h, finalPos('sie').y + SIZES.sie.h);
+      var alltimeEl = document.getElementById('alltime-section');
+      var alltimeX = co.x + LAYOUT.alltimeProfit.x;
+      var alltimeY = captionBottom + LAYOUT.alltimeProfit.y;
+      alltimeEl.style.left = alltimeX + 'px';
+      alltimeEl.style.top = alltimeY + 'px';
+
+      // Position hero image below alltime-section
+      var heroLink = document.getElementById('hero-link');
+      var heroImg = document.getElementById('hero-img');
+      window.positionHero = function() {
+        var alltimeH = alltimeEl.offsetHeight;
+        heroLink.style.left = (alltimeX + LAYOUT.heroMarginLeft) + 'px';
+        heroLink.style.top = (alltimeY + alltimeH + LAYOUT.heroGap) + 'px';
+        heroImg.style.width = LAYOUT.heroWidth + 'px';
+        if (window.positionBigsb) window.positionBigsb();
+      };
+      heroImg.onload = window.positionHero;
+      if (heroImg.complete) window.positionHero();
+
+      // Position BIGSB section to the right of hero, matching height and alltime right edge
+      var bigsbEl = document.getElementById('bigsb-section');
+      window.positionBigsb = function() {
+        var heroLeft = parseFloat(heroLink.style.left) || 0;
+        var heroTop = parseFloat(heroLink.style.top) || 0;
+        var heroW = heroImg.offsetWidth || LAYOUT.heroWidth;
+        var heroH = heroImg.offsetHeight || 40;
+        var alltimeRight = alltimeX + alltimeEl.offsetWidth;
+        var bigsbLeft = heroLeft + heroW + LAYOUT.bigsbGap;
+        bigsbEl.style.left = bigsbLeft + 'px';
+        bigsbEl.style.top = heroTop + 'px';
+        bigsbEl.style.height = (heroH + 4) + 'px';
+        bigsbEl.style.width = (alltimeRight - bigsbLeft) + 'px';
+      };
+      // Update bigsb value
+      document.getElementById('bigsb-value').textContent = BIGSB_BURNED.toLocaleString('en-US');
+      document.getElementById('bigsb-link').href = BIGSB_URL;
+
+      var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
+      var poweredBy = document.getElementById('powered-by');
+      tradesSection.style.marginLeft = scaledLeft + 'px';
+      tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
+      quoteSection.style.marginLeft = scaledLeft + 'px';
+      poweredBy.style.marginLeft = 5 + scaledLeft + 'px';
+
+      // Compute trades/quote width to match alltime section's right edge
+      window.alignTradesWidth = function() {
+        var alltimeRight = (alltimeX + alltimeEl.offsetWidth) * LAYOUT.scale;
+        var w = alltimeRight - scaledLeft;
+        tradesSection.style.width = w + 'px';
+        quoteSection.style.width = w + 'px';
+        poweredBy.style.width = w + 'px';
+      };
+      window.alignTradesWidth();
+    }
+
+    function renderTrades() {
+      var list = document.getElementById('trades-list');
+      list.innerHTML = '';
+      var openTrades = MOCK_TRADES.filter(function(t) { return t.open; });
+      var closedTrades = MOCK_TRADES.filter(function(t) { return !t.open; });
+      openTrades.forEach(function(t) { list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t))); });
+      if (openTrades.length > 0 && closedTrades.length > 0) {
+        var sep = document.createElement('hr'); sep.className = 'trades-separator'; list.appendChild(sep);
+        var cl = document.createElement('div'); cl.className = 'closed-label'; cl.textContent = 'Zamkni\u0119te pozycje'; list.appendChild(cl);
+      }
+      closedTrades.forEach(function(t) { list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t))); });
+      var openH = LAYOUT.openTradeHeight + 8;
+      var sepH = LAYOUT.separatorHeight + LAYOUT.closedLabelHeight;
+      var closedH = 3 * (LAYOUT.closedTradeHeight + 8);
+      list.style.maxHeight = (openH + sepH + closedH) + 'px';
+    }
+
+    function createTradeCard(trade, index) {
+      var card = document.createElement('div');
+      card.className = 'trade-card ' + (trade.open ? 'trade-open' : 'trade-closed');
+      card.id = 'trade-card-' + index;
+      var cardH = trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight;
+      card.style.height = cardH + 'px';
+      if (trade.open) {
+        card.style.borderColor = pnlColor(calcPnl(trade));
+      }
+      // Closed cards use CSS rule for low-opacity border
+
+      var left = document.createElement('div'); left.className = 'trade-left';
+      var icon = document.createElement('img'); icon.className = 'trade-icon';
+      var token = trade.pair.split('/')[0].toLowerCase();
+      icon.src = TOKEN_ICONS[trade.pair] || ('tokens/' + token + '.svg'); icon.alt = token;
+
+      var pairSpan = document.createElement('span');
+      pairSpan.className = 'trade-pair'; pairSpan.id = 'trade-pair-' + index;
+      pairSpan.textContent = trade.pair;
+      if (trade.open) {
+        pairSpan.style.color = pnlColor(calcPnl(trade));
+      } else {
+        pairSpan.style.color = 'rgba(255, 255, 255, 0.9)';
+      }
+
+      // Direction label with bg + bottom bar
+      var dirSpan = document.createElement('span');
+      dirSpan.className = 'trade-direction'; dirSpan.id = 'trade-dir-' + index;
+      var isLong = trade.type === 'long';
+      var dirColor = isLong ? COLORS.profit : COLORS.loss;
+      var dirRgb = hexToRgb(dirColor);
+      dirSpan.style.color = dirColor;
+      dirSpan.style.backgroundColor = 'rgba(' + dirRgb[0] + ',' + dirRgb[1] + ',' + dirRgb[2] + ',0.2)';
+
+      var dirText = document.createElement('span');
+      dirText.textContent = isLong ? '\u2197 Long' : '\u2198 Short';
+      dirText.style.position = 'relative';
+      dirText.style.zIndex = '1';
+      dirSpan.appendChild(dirText);
+
+      var dirBar = document.createElement('span');
+      dirBar.className = 'trade-direction-bar';
+      dirBar.style.backgroundColor = 'rgba(' + dirRgb[0] + ',' + dirRgb[1] + ',' + dirRgb[2] + ',0.4)';
+      dirSpan.appendChild(dirBar);
+
+      // Leverage label with bg + bottom bar (like direction)
+      var levSpan = document.createElement('span');
+      levSpan.className = 'trade-leverage';
+      levSpan.style.color = dirColor;
+      var levRgb = hexToRgb(dirColor);
+      levSpan.style.backgroundColor = 'rgba(' + levRgb[0] + ',' + levRgb[1] + ',' + levRgb[2] + ',0.2)';
+
+      var levText = document.createElement('span');
+      levText.textContent = formatLeverage(trade.leverage);
+      levText.style.position = 'relative';
+      levText.style.zIndex = '1';
+      levSpan.appendChild(levText);
+
+      var levBar = document.createElement('span');
+      levBar.className = 'trade-leverage-bar';
+      levBar.style.backgroundColor = 'rgba(' + levRgb[0] + ',' + levRgb[1] + ',' + levRgb[2] + ',0.4)';
+      levSpan.appendChild(levBar);
+
+      // Price info with column-aligned labels and prices
+      var info = document.createElement('span');
+      info.className = 'trade-info'; info.id = 'trade-info-' + index;
+      buildTradeInfo(info, trade, index);
+
+      left.appendChild(icon); left.appendChild(pairSpan);
+      left.appendChild(dirSpan); left.appendChild(levSpan);
+
+      // PnL box with percentage inside for closed trades
+      var pnlBox = document.createElement('div');
+      pnlBox.className = 'pnl-box'; pnlBox.id = 'trade-pnl-' + index;
+      var ratio = trade.open ? LAYOUT.openPnlHeightRatio : LAYOUT.closedPnlHeightRatio;
+      var pnlH = Math.round(cardH * ratio);
+      pnlBox.style.height = pnlH + 'px';
+      var fontSize = trade.open ? Math.round(pnlH * 0.50) : Math.round(pnlH * 0.60);
+      pnlBox.style.fontSize = fontSize + 'px';
+      pnlBox.style.lineHeight = '1.2';
+
+      if (!trade.open) {
+        // Show pct inside pnl box for closed trades
+        var pctText = formatPct(trade.openPrice, trade.closePrice, trade.type, trade.leverage);
+        updatePnlBox(pnlBox, calcPnl(trade), pctText);
+      } else {
+        // Show pct inside pnl box for open trades too
+        var pctText = formatPct(trade.openPrice, trade.currentPrice, trade.type, trade.leverage);
+        updatePnlBox(pnlBox, calcPnl(trade), pctText);
+      }
+
+      var right = document.createElement('div'); right.className = 'trade-right';
+      right.appendChild(info); right.appendChild(pnlBox);
+      card.appendChild(left); card.appendChild(right);
+      return card;
+    }
+
+    function buildTradeInfo(el, trade, index) {
+      el.innerHTML = '';
+      var row1 = document.createElement('div'); row1.className = 'trade-info-row';
+      var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw:';
+      var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSig(trade.openPrice);
+      row1.appendChild(lbl); row1.appendChild(price); el.appendChild(row1);
+      var row2 = document.createElement('div'); row2.className = 'trade-info-row';
+      if (trade.open) {
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Cena:';
+        var price2 = document.createElement('span'); price2.className = 'trade-info-price'; price2.id = 'trade-current-price-' + index;
+        price2.textContent = formatPriceSig(trade.currentPrice);
+      } else {
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zam:';
+        var price2 = document.createElement('span'); price2.className = 'trade-info-price';
+        price2.textContent = formatPriceSig(trade.closePrice);
+      }
+      row2.appendChild(lbl2); row2.appendChild(price2); el.appendChild(row2);
+    }
+
+    function startContinuousPulse() {
+      var dot = document.getElementById('pulse-dot');
+      dot.style.backgroundColor = COLORS.profit;
+      function tick(now) {
+        var t = pulseT(now);
+        dot.style.opacity = (0.5 + 0.5 * t).toString();
+        dot.style.backgroundColor = lerpColor(COLORS.profit, COLORS.profitBright, t);
+        MOCK_TRADES.forEach(function(trade, i) {
+          if (!trade.open) return;
+          var color = currentPnlColor(calcPnl(trade), t);
+          var card = document.getElementById('trade-card-' + i);
+          var pair = document.getElementById('trade-pair-' + i);
+          var pnlEl = document.getElementById('trade-pnl-' + i);
+          if (card) card.style.borderColor = color;
+          if (pair) pair.style.color = color;
+          if (pnlEl) { pnlEl.style.color = color; pnlEl.style.borderColor = color; }
+        });
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function spawnRing() {
+      var wrapper = document.querySelector('.pulse-dot-wrapper');
+      if (!wrapper) return;
+      var ring = document.createElement('span'); ring.className = 'pulse-ring';
+      var dotSize = 10;
+      ring.style.width = dotSize + 'px'; ring.style.height = dotSize + 'px';
+      ring.style.top = '0px'; ring.style.left = '0px';
+      ring.style.border = '2px solid ' + COLORS.profitBright;
+      ring.style.opacity = '1';
+      wrapper.appendChild(ring);
+      var start = performance.now();
+      function animateRing(now) {
+        var elapsed = now - start;
+        var raw = Math.min(elapsed / RING_DURATION_MS, 1);
+        var e = easeOutCubic(raw);
+        var size = dotSize * (1 + e);
+        var offset = (size - dotSize) / 2;
+        ring.style.width = size + 'px'; ring.style.height = size + 'px';
+        ring.style.top = -offset + 'px'; ring.style.left = -offset + 'px';
+        ring.style.opacity = (1 - e).toString();
+        if (raw < 1) requestAnimationFrame(animateRing);
+        else wrapper.removeChild(ring);
+      }
+      requestAnimationFrame(animateRing);
+    }
+
+    function updateSimulation() {
+      MOCK_TRADES.forEach(function(t) {
+        if (t.open) {
+          t.currentPrice += (detRandom() - 0.5) * t.currentPrice * 0.001;
+        }
+      });
+      MOCK_TRADES.forEach(function(t, i) {
+        var pnl = calcPnl(t);
+        var pnlEl = document.getElementById('trade-pnl-' + i);
+        if (pnlEl) {
+          var closeP = t.open ? t.currentPrice : t.closePrice;
+          var pctText = formatPct(t.openPrice, closeP, t.type, t.leverage);
+          updatePnlBox(pnlEl, pnl, pctText);
+        }
+        if (t.open) {
+          var priceEl = document.getElementById('trade-current-price-' + i);
+          if (priceEl) priceEl.textContent = formatPriceSig(t.currentPrice);
+        }
+      });
+      var totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + calcPnl(t); }, 0);
+      updatePnlBox('alltime-pnl', totalPnl);
+      spawnRing();
+    }
+
+    function startTypewriter() {
+      var textEl = document.getElementById('quote-text');
+      var charIndex = 0;
+      function typeNext() {
+        if (charIndex < QUOTE_TEXT.length) {
+          textEl.textContent += QUOTE_TEXT[charIndex];
+          charIndex++;
+          var delay = QUOTE_BASE_INTERVAL + (detRandom() - 0.5) * 2 * QUOTE_VARIATION;
+          setTimeout(typeNext, Math.max(30, delay));
+        } else {
+          setTimeout(function() {
+            var cursor = document.getElementById('quote-cursor');
+            if (cursor) cursor.style.display = 'none';
+          }, 1000);
+        }
+      }
+      typeNext();
+    }
+
+    async function run() {
+      var bg = document.getElementById('bg');
+      var elZaor = document.getElementById('zaor');
+      var elCzy = document.getElementById('czy');
+      var elZaorski = document.getElementById('img-zaorski');
+      var elSie = document.getElementById('sie');
+      var elDots = document.getElementById('dots');
+      var elSkonczyl = document.getElementById('skonczyl');
+
+      layoutSections();
+      renderTrades();
+      startContinuousPulse();
+      updateSimulation();
+      window.alignTradesWidth();
+      if (window.positionHero) window.positionHero();
+      if (window.positionBigsb) window.positionBigsb();
+      setInterval(updateSimulation, UPDATE_INTERVAL_MS);
+      startTypewriter();
+
+      await animate(500, function(t) { bg.style.opacity = easeOutCubic(t); });
+
+      var zaorFinal = finalPos('zaor');
+      var zaorStartX = zaorFinal.x - SIZES.zaor.w;
+      var zaorState = { x: zaorStartX, y: zaorFinal.y, opacity: 0 };
+      startBobbing(elZaor, function() { return zaorState; });
+      await animate(1000, function(t) {
+        var e = easeOutCubic(t);
+        zaorState.x = zaorStartX + (zaorFinal.x - zaorStartX) * e;
+        zaorState.y = zaorFinal.y; zaorState.opacity = e;
+      });
+      zaorState.x = zaorFinal.x; zaorState.opacity = 1;
+
+      var czyFinal = finalPos('czy'), zaorskiFinal = finalPos('zaorski');
+      var sieFinal = finalPos('sie'), dotsFinal = finalPos('dots');
+      await Promise.all([
+        animate(1000, function(t) { var e = easeOutCubic(t); var sy = czyFinal.y - SIZES.czy.h; place(elCzy, czyFinal.x, sy + (czyFinal.y - sy) * e, e); }),
+        animate(1500, function(t) { var e = easeOutCubic(t); var sx = zaorskiFinal.x + SIZES.zaorski.w; place(elZaorski, sx + (zaorskiFinal.x - sx) * e, zaorskiFinal.y, e); }),
+        animate(2000, function(t) { var e = easeOutCubic(t); var sy = sieFinal.y + SIZES.sie.h; place(elSie, sieFinal.x, sy + (sieFinal.y - sy) * e, e); }),
+        animate(2000, function(t) { var e = easeOutCubic(t); var sy = dotsFinal.y + SIZES.dots.h; place(elDots, dotsFinal.x, sy + (dotsFinal.y - sy) * e, e); }),
+      ]);
+      place(elCzy, czyFinal.x, czyFinal.y, 1);
+      place(elZaorski, zaorskiFinal.x, zaorskiFinal.y, 1);
+      place(elSie, sieFinal.x, sieFinal.y, 1);
+      place(elDots, dotsFinal.x, dotsFinal.y, 1);
+
+      await new Promise(function(r) { setTimeout(r, 2000); });
+      var skonczylFinal = finalPos('skonczyl');
+      await Promise.all([
+        animate(1500, function(t) { var e = easeOutCubic(t); var sx = skonczylFinal.x + SIZES.skonczyl.w; place(elSkonczyl, sx + (skonczylFinal.x - sx) * e, skonczylFinal.y, e); }),
+        animate(1500, function(t) { var e = easeOutCubic(t); place(elDots, dotsFinal.x, dotsFinal.y, 1 - e); }),
+      ]);
+      place(elSkonczyl, skonczylFinal.x, skonczylFinal.y, 1);
+      place(elDots, dotsFinal.x, dotsFinal.y, 0);
+    }
+
+    window.addEventListener('load', run);
   </script>
 </body>
 </html>
