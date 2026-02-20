@@ -75,6 +75,32 @@
     #hero-link:hover img {
       opacity: 1;
     }
+    #bigsb-section {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(80, 140, 255, 0.5);
+      border-radius: 6px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .bigsb-label {
+      font-size: 14px;
+      color: #aaa;
+      letter-spacing: 0.03em;
+    }
+    .bigsb-value {
+      font-family: 'Courier New', Consolas, monospace;
+      font-weight: bold;
+      font-size: 16px;
+      color: #6cacff;
+    }
+    .bigsb-icon {
+      width: 22px;
+      height: 22px;
+    }
     #trades-section {
       background: rgba(0, 0, 0, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -188,7 +214,8 @@
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
     }
-    .trade-card .pnl-box { font-size: 17px; width: 22ch; }
+    .trade-card .pnl-box { font-size: 17px; width: 24ch; }
+    .trade-closed .pnl-box { font-size: 19px; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
@@ -250,6 +277,11 @@
       <a id="hero-link" href="https://bigshortbets.com/" target="_blank" rel="noopener noreferrer">
         <img id="hero-img" src="hero.png" alt="BigShortBets">
       </a>
+      <div id="bigsb-section">
+        <span class="bigsb-label">$BIGSB burned:</span>
+        <span id="bigsb-value" class="bigsb-value">0</span>
+        <img class="bigsb-icon" src="tokens/bigsb.webp" alt="BIGSB">
+      </div>
     </div>
     <div id="trades-section">
       <div class="section-header">OTWARTE POZYCJE<span class="pulse-dot-wrapper"><span id="pulse-dot" class="pulse-dot"></span></span></div>
@@ -280,6 +312,7 @@
       openPnlHeightRatio: 0.60,
       closedPnlHeightRatio: 0.55,
       heroWidth: 300, heroMarginLeft: 5,
+      bigsbGap: 10,
       separatorHeight: 17, closedLabelHeight: 28,
     };
     var MAX_PNL_VALUE = 999999999;
@@ -291,6 +324,7 @@
     var QUOTE_TEXT = 'Rol\u0105 spekulanta jest przywr\u00f3ci\u0107 rynkow\u0105 r\u00f3wnowag\u0119. S\u0105 przy tym emocje, jest zabawa, ale i ryzyko.\nJe\u015bli spekulant \u017ale oceni sytuacj\u0119, a punkt r\u00f3wnowagi jest w innym miejscu, to przegra.';
     var QUOTE_BASE_INTERVAL = 100;
     var QUOTE_VARIATION = 70;
+    var BIGSB_BURNED = 142857;
 
     var TOKEN_ICONS = {
       'XAU/USD': 'tokens/xau.svg', 'XAG/USD': 'tokens/xag.svg',
@@ -381,7 +415,10 @@
     function formatPct(openP, closeP) {
       if (openP === 0) return '(+0.00%)';
       var pct = ((closeP - openP) / openP) * 100;
-      return '(' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)';
+      var abs = Math.abs(pct);
+      if (abs < 0.005) return '(+0.00%)';
+      var formatted = Number(abs.toPrecision(3)).toString();
+      return '(' + (pct >= 0 ? '+' : '-') + formatted + '%)';
     }
     function pnlColor(value) { return value >= 0 ? COLORS.profit : COLORS.loss; }
     function updatePnlBox(el, value, pctText) {
@@ -427,9 +464,22 @@
         heroLink.style.left = (alltimeX + LAYOUT.heroMarginLeft) + 'px';
         heroLink.style.top = (alltimeY + alltimeH + LAYOUT.heroGap) + 'px';
         heroImg.style.width = LAYOUT.heroWidth + 'px';
+        if (window.positionBigsb) window.positionBigsb();
       };
       heroImg.onload = window.positionHero;
       if (heroImg.complete) window.positionHero();
+
+      // Position BIGSB section to the right of hero
+      var bigsbEl = document.getElementById('bigsb-section');
+      window.positionBigsb = function() {
+        var heroLeft = parseFloat(heroLink.style.left) || 0;
+        var heroTop = parseFloat(heroLink.style.top) || 0;
+        var heroW = heroImg.offsetWidth || LAYOUT.heroWidth;
+        bigsbEl.style.left = (heroLeft + heroW + LAYOUT.bigsbGap) + 'px';
+        bigsbEl.style.top = heroTop + 'px';
+      };
+      // Update bigsb value
+      document.getElementById('bigsb-value').textContent = BIGSB_BURNED.toLocaleString('en-US');
 
       var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
       tradesSection.style.marginLeft = scaledLeft + 'px';
@@ -668,6 +718,7 @@
       updateSimulation();
       window.alignTradesWidth();
       if (window.positionHero) window.positionHero();
+      if (window.positionBigsb) window.positionBigsb();
       setInterval(updateSimulation, UPDATE_INTERVAL_MS);
       startTypewriter();
 
