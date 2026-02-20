@@ -168,7 +168,7 @@
       align-items: center;
       flex-shrink: 0;
       margin-left: 12px;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       white-space: nowrap;
     }
     .trade-info-label {
@@ -189,22 +189,24 @@
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
     }
-    .trade-card .pnl-box { font-size: 13px; }
+    .trade-card .pnl-box { font-size: 13px; width: 19ch; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
+      align-items: center;
+      justify-content: center;
       width: 100%;
+      height: 100%;
     }
     .pnl-value {
-      text-align: right;
+      text-align: center;
       width: 100%;
     }
     .pnl-pct {
       font-family: 'Courier New', Consolas, monospace;
-      font-size: 0.65em;
-      text-align: left;
+      font-size: 1em;
+      text-align: center;
       width: 100%;
       opacity: 0.8;
     }
@@ -280,7 +282,8 @@
       tradesTopMargin: 40, tradesWidthPercent: 40,
       closedTradeHeight: 52, openTradeHeight: 80,
       openPnlHeightRatio: 0.60,
-      closedPnlHeightRatio: 0.70,
+      closedPnlHeightRatio: 0.55,
+      heroWidth: 300, heroMarginLeft: 5,
       separatorHeight: 17, closedLabelHeight: 28,
     };
     var MAX_PNL_VALUE = 999999999;
@@ -423,13 +426,14 @@
       // Position hero image below alltime-section
       var heroLink = document.getElementById('hero-link');
       var heroImg = document.getElementById('hero-img');
-      function positionHero() {
+      window.positionHero = function() {
         var alltimeH = alltimeEl.offsetHeight;
-        heroLink.style.left = alltimeX + 'px';
+        heroLink.style.left = (alltimeX + LAYOUT.heroMarginLeft) + 'px';
         heroLink.style.top = (alltimeY + alltimeH + LAYOUT.heroGap) + 'px';
-      }
-      heroImg.onload = positionHero;
-      if (heroImg.complete) positionHero();
+        heroImg.style.width = LAYOUT.heroWidth + 'px';
+      };
+      heroImg.onload = window.positionHero;
+      if (heroImg.complete) window.positionHero();
 
       var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
       tradesSection.style.marginLeft = scaledLeft + 'px';
@@ -474,7 +478,12 @@
 
       var pairSpan = document.createElement('span');
       pairSpan.className = 'trade-pair'; pairSpan.id = 'trade-pair-' + index;
-      pairSpan.textContent = trade.pair; pairSpan.style.color = "white";
+      pairSpan.textContent = trade.pair;
+      if (trade.open) {
+        pairSpan.style.color = pnlColor(trade.pnl);
+      } else {
+        pairSpan.style.color = 'rgba(255, 255, 255, 0.9)';
+      }
 
       // Direction label with bg + bottom bar
       var dirSpan = document.createElement('span');
@@ -651,6 +660,7 @@
       renderTrades();
       startContinuousPulse();
       updateSimulation();
+      if (window.positionHero) window.positionHero();
       setInterval(updateSimulation, UPDATE_INTERVAL_MS);
       startTypewriter();
 
