@@ -34,25 +34,87 @@
       opacity: 0;
       will-change: transform, opacity;
     }
-    #profit-section {
-      text-align: center;
-      padding: 2rem 0;
+
+    /* All-time profit (inside images-section, positioned absolutely) */
+    #alltime-section {
+      position: absolute;
       background: rgba(0, 0, 0, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      min-height: 50vh;
+      border-radius: 6px;
+      padding: 10px 16px;
     }
-    #profit-section h1 {
-      font-size: 3rem;
+    .section-label {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* PnL number boxes (shared style for all-time and trades) */
+    .pnl-box {
+      box-sizing: content-box;
+      font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
-      margin-bottom: 0.5em;
-      letter-spacing: 0.02em;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid;
+      border-radius: 4px;
+      padding: 4px 10px;
+      text-align: right;
+      white-space: nowrap;
+      display: inline-block;
+      width: 17ch;
+    }
+
+    /* Trades section */
+    #trades-section {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .section-header {
+      font-size: 1.2rem;
+      font-weight: bold;
       color: #e0e0e0;
+      margin-bottom: 12px;
+      letter-spacing: 0.02em;
     }
-    #profit {
-      font-size: 5rem;
+    #trades-list {
+      overflow-y: auto;
+    }
+
+    /* Trade cards */
+    .trade-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid;
+      border-radius: 8px;
+      padding: 0 12px;
+      margin-bottom: 8px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    .trade-left {
+      display: flex;
+      align-items: center;
+    }
+    .trade-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+    }
+    .trade-pair {
       font-weight: bold;
-      color: #4caf50;
-      letter-spacing: 0.03em;
+      font-size: 1rem;
+    }
+    .trade-card .pnl-box {
+      font-size: 13px;
+    }
+    .trades-separator {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      margin: 8px 0;
     }
   </style>
 </head>
@@ -66,40 +128,82 @@
       <img id="sie" class="anim-img" src="sie.png">
       <img id="dots" class="anim-img" src="dots.png">
       <img id="skonczyl" class="anim-img" src="skonczyl.png">
+
+      <div id="alltime-section">
+        <div class="section-label">All time profit</div>
+        <div id="alltime-pnl" class="pnl-box" style="font-size:20px"></div>
+      </div>
     </div>
-    <div id="profit-section">
-      <h1>All time profit</h1>
-      <div id="profit"></div>
+
+    <div id="trades-section">
+      <div class="section-header">Trades</div>
+      <div id="trades-list"></div>
     </div>
   </div>
 
   <script>
     // =====================================================
+    // CONFIGURABLE COLORS
+    // =====================================================
+    const COLORS = {
+      profit: '#4caf50',
+      loss: '#e53935',
+    };
+
+    // =====================================================
     // CONFIGURABLE OFFSETS — adjust these to taste
     // =====================================================
     const LAYOUT = {
-      // Scale factor for the entire images section (1.0 = 100%)
       scale: 0.7,
-
-      // zaor512.png final position (top-left corner of the page)
       zaor: { x: 20, y: 20 },
-
-      // Gap between zaor512's right edge and the caption area
       captionGapX: 20,
-
-      // Vertical offset of caption area relative to zaor512's top
       captionBaseY: 100,
 
-      // Caption piece offsets relative to the caption area origin
       czy:      { x: 0,   y: 0 },
       zaorski:  { x: 210, y: 1 },
       sie:      { x: 0,   y: 127 },
       dots:     { x: 145, y: 173 },
       skonczyl: { x: 175, y: 125 },
+
+      // All-time profit offset from (captionOrigin.x, captionBottom)
+      alltimeProfit: { x: 0, y: 25 },
+
+      // Trades section
+      tradesTopMargin: 40,
+      tradesWidthPercent: 40,
+
+      // Trade card heights
+      closedTradeHeight: 52,
+      openTradeHeight: 68,
+
+      // Separator height (border + margins) for scroll height calc
+      separatorHeight: 17,
     };
+
+    const MAX_PNL_VALUE = 999999999;
+    const TRADE_FLUCTUATION_RANGE = 2000;
     // =====================================================
 
-    // Image natural sizes (used for easing distance & layout)
+    // =====================================================
+    // MOCK TRADES
+    // =====================================================
+    const TOKEN_ICONS = {
+      'XAU/USD': 'tokens/xau.svg',
+      'XAG/USD': 'tokens/xag.svg',
+      'BTC/USD': 'tokens/btc.svg',
+      'ETH/USD': 'tokens/eth.svg',
+    };
+
+    const MOCK_TRADES = [
+      { pair: 'XAU/USD', pnl: 15420,  open: true },
+      { pair: 'XAG/USD', pnl: -3200,  open: false },
+      { pair: 'BTC/USD', pnl: 8750,   open: false },
+      { pair: 'ETH/USD', pnl: -1500,  open: false },
+    ];
+
+    // =====================================================
+    // IMAGE SIZES
+    // =====================================================
     const SIZES = {
       zaor:     { w: 512, h: 512 },
       czy:      { w: 191, h: 99 },
@@ -109,12 +213,13 @@
       skonczyl: { w: 488, h: 98 },
     };
 
-    // Ease-out cubic: fast start, slow finish — good for slide-ins
+    // =====================================================
+    // EASING & ANIMATION (unchanged)
+    // =====================================================
     function easeOutCubic(t) {
       return 1 - Math.pow(1 - t, 3);
     }
 
-    // Generic animate helper using requestAnimationFrame
     function animate(duration, onTick) {
       return new Promise(resolve => {
         const start = performance.now();
@@ -129,7 +234,6 @@
       });
     }
 
-    // Compute absolute positions for caption pieces
     function captionOrigin() {
       return {
         x: LAYOUT.zaor.x + SIZES.zaor.w + LAYOUT.captionGapX,
@@ -144,21 +248,19 @@
       return { x: co.x + off.x, y: co.y + off.y };
     }
 
-    // Place an element at (x, y) with optional rotation & opacity using transforms
     function place(el, x, y, opacity, rotation) {
       const rot = rotation !== undefined ? rotation : 0;
       el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + rot + 'deg)';
       el.style.opacity = opacity;
     }
 
-    const BOB_PERIOD = 4000;  // ms per full cycle
-    const BOB_AMPLITUDE = 5; // degrees
+    const BOB_PERIOD = 4000;
+    const BOB_AMPLITUDE = 5;
 
     function bobAngle(now) {
       return BOB_AMPLITUDE * Math.sin((-2 * Math.PI * now) / BOB_PERIOD);
     }
 
-    // Continuously update zaor512 bobbing rotation
     function startBobbing(el, getBasePos) {
       function tick(now) {
         const pos = getBasePos();
@@ -168,40 +270,156 @@
       requestAnimationFrame(tick);
     }
 
-    // Position profit section below the scaled images area
-    function layoutProfitSection() {
-      const section = document.getElementById('images-section');
-      const profitSection = document.getElementById('profit-section');
+    // =====================================================
+    // PNL FORMATTING
+    // =====================================================
+    function formatPnl(value) {
+      var rounded = Math.round(value);
+      rounded = Math.max(-MAX_PNL_VALUE, Math.min(MAX_PNL_VALUE, rounded));
+      const sign = rounded >= 0 ? '+' : '-';
+      const abs = Math.abs(rounded);
+      const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return sign + formatted + ' PLN';
+    }
 
-      // Compute total image group bounds (in unscaled coordinates)
-      const rightEdge = Math.max(
-        LAYOUT.zaor.x + SIZES.zaor.w,
-        finalPos('zaorski').x + SIZES.zaorski.w,
-        finalPos('skonczyl').x + SIZES.skonczyl.w
-      );
+    function pnlColor(value) {
+      return value >= 0 ? COLORS.profit : COLORS.loss;
+    }
+
+    function updatePnlBox(el, value) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      el.textContent = formatPnl(value);
+      const color = pnlColor(value);
+      el.style.borderColor = color;
+      el.style.color = color;
+    }
+
+    // =====================================================
+    // LAYOUT
+    // =====================================================
+    function layoutSections() {
+      const section = document.getElementById('images-section');
+      const tradesSection = document.getElementById('trades-section');
+
       const bottomEdge = Math.max(
         LAYOUT.zaor.y + SIZES.zaor.h,
         finalPos('sie').y + SIZES.sie.h,
         finalPos('skonczyl').y + SIZES.skonczyl.h
       );
 
-      // Apply scale to images section
+      // Scale images section
       section.style.transform = 'scale(' + LAYOUT.scale + ')';
-      // The scaled height is used for document flow
       section.style.height = (bottomEdge + 20) + 'px';
       // CSS transform: scale() doesn't change the element's layout box — it still
       // occupies its full unscaled height in the document flow. We add a negative
-      // margin-bottom equal to the hidden portion so the next element (profit section)
-      // sits directly below the visually scaled images instead of leaving a large gap.
+      // margin-bottom equal to the hidden portion so the next element sits directly
+      // below the visually scaled images instead of leaving a large gap.
       section.style.marginBottom = -((1 - LAYOUT.scale) * (bottomEdge + 20)) + 'px';
 
-      // Profit container: same left padding as zaor512, stretches right
+      // Position all-time profit section (inside scaled area)
+      const co = captionOrigin();
+      const captionBottom = Math.max(
+        finalPos('skonczyl').y + SIZES.skonczyl.h,
+        finalPos('sie').y + SIZES.sie.h
+      );
+      const alltimeEl = document.getElementById('alltime-section');
+      alltimeEl.style.left = (co.x + LAYOUT.alltimeProfit.x) + 'px';
+      alltimeEl.style.top = (captionBottom + LAYOUT.alltimeProfit.y) + 'px';
+
+      // Position trades section
       const scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
-      profitSection.style.position = 'relative';
-      profitSection.style.marginLeft = scaledLeft + 'px';
-      profitSection.style.marginRight = '0';
-      profitSection.style.width = 'calc(100% - ' + scaledLeft + 'px)';
-      profitSection.style.textAlign = 'center';
+      tradesSection.style.marginLeft = scaledLeft + 'px';
+      tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
+      tradesSection.style.width = LAYOUT.tradesWidthPercent + '%';
+    }
+
+    // =====================================================
+    // TRADES RENDERING
+    // =====================================================
+    function renderTrades() {
+      const list = document.getElementById('trades-list');
+      list.innerHTML = '';
+
+      const openTrades = MOCK_TRADES.filter(function(t) { return t.open; });
+      const closedTrades = MOCK_TRADES.filter(function(t) { return !t.open; });
+
+      openTrades.forEach(function(t) {
+        list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t)));
+      });
+
+      if (openTrades.length > 0 && closedTrades.length > 0) {
+        const sep = document.createElement('hr');
+        sep.className = 'trades-separator';
+        list.appendChild(sep);
+      }
+
+      closedTrades.forEach(function(t) {
+        list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t)));
+      });
+
+      // Set trades-list height to fit 1 open + separator + 3 closed
+      const openH = LAYOUT.openTradeHeight + 8;
+      const sepH = LAYOUT.separatorHeight;
+      const closedH = 3 * (LAYOUT.closedTradeHeight + 8);
+      list.style.maxHeight = (openH + sepH + closedH) + 'px';
+    }
+
+    function createTradeCard(trade, index) {
+      const card = document.createElement('div');
+      card.className = 'trade-card ' + (trade.open ? 'trade-open' : 'trade-closed');
+      card.style.height = (trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight) + 'px';
+      card.style.borderColor = pnlColor(trade.pnl);
+
+      const left = document.createElement('div');
+      left.className = 'trade-left';
+
+      const icon = document.createElement('img');
+      icon.className = 'trade-icon';
+      const token = trade.pair.split('/')[0].toLowerCase();
+      icon.src = TOKEN_ICONS[trade.pair] || ('tokens/' + token + '.svg');
+      icon.alt = token;
+
+      const pairSpan = document.createElement('span');
+      pairSpan.className = 'trade-pair';
+      pairSpan.textContent = trade.pair;
+
+      left.appendChild(icon);
+      left.appendChild(pairSpan);
+
+      const pnlBox = document.createElement('div');
+      pnlBox.className = 'pnl-box';
+      pnlBox.id = 'trade-pnl-' + index;
+      pnlBox.style.fontSize = '13px';
+      updatePnlBox(pnlBox, trade.pnl);
+
+      card.appendChild(left);
+      card.appendChild(pnlBox);
+      return card;
+    }
+
+    // =====================================================
+    // SIMULATION
+    // =====================================================
+    function updateSimulation() {
+      MOCK_TRADES.forEach(function(t) {
+        if (t.open) {
+          t.pnl += (Math.random() - 0.5) * TRADE_FLUCTUATION_RANGE;
+        }
+      });
+
+      // Update individual trade PnL displays
+      MOCK_TRADES.forEach(function(t, i) {
+        const pnlEl = document.getElementById('trade-pnl-' + i);
+        if (pnlEl) {
+          updatePnlBox(pnlEl, t.pnl);
+          const card = pnlEl.closest('.trade-card');
+          if (card) card.style.borderColor = pnlColor(t.pnl);
+        }
+      });
+
+      // All-time PnL = sum of all trades
+      const totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + t.pnl; }, 0);
+      updatePnlBox('alltime-pnl', totalPnl);
     }
 
     // =====================================================
@@ -216,55 +434,52 @@
       const elDots = document.getElementById('dots');
       const elSkonczyl = document.getElementById('skonczyl');
 
-      // Position profit section immediately so it doesn't jump
-      layoutProfitSection();
+      // Position sections immediately so they don't jump
+      layoutSections();
+      renderTrades();
+      updateSimulation();
+      setInterval(updateSimulation, 1000);
 
       // --- 1. Fade in background from black (500ms) ---
       await animate(500, t => { bg.style.opacity = easeOutCubic(t); });
 
       // --- 2. Slide zaor512 from left + start bobbing ---
       const zaorFinal = finalPos('zaor');
-      const zaorStartX = zaorFinal.x - SIZES.zaor.w; // starts one image-width to the left
+      const zaorStartX = zaorFinal.x - SIZES.zaor.w;
       const zaorState = { x: zaorStartX, y: zaorFinal.y, opacity: 0 };
-
-      // Start bobbing loop — it reads from zaorState
       startBobbing(elZaor, () => zaorState);
 
       await animate(1000, t => {
         const e = easeOutCubic(t);
         zaorState.x = zaorStartX + (zaorFinal.x - zaorStartX) * e;
         zaorState.y = zaorFinal.y;
-        zaorState.opacity = e; // alpha proportional to progress
+        zaorState.opacity = e;
       });
       zaorState.x = zaorFinal.x;
       zaorState.opacity = 1;
 
-      // --- 3. Simultaneously animate czy, zaorski, sie + dots (500ms) ---
+      // --- 3. Simultaneously animate czy, zaorski, sie + dots ---
       const czyFinal = finalPos('czy');
       const zaorskiFinal = finalPos('zaorski');
       const sieFinal = finalPos('sie');
       const dotsFinal = finalPos('dots');
 
       await Promise.all([
-        // czy: top → down (vertical, easing distance = image height)
         animate(1000, t => {
           const e = easeOutCubic(t);
           const startY = czyFinal.y - SIZES.czy.h;
           place(elCzy, czyFinal.x, startY + (czyFinal.y - startY) * e, e);
         }),
-        // zaorski: right → left (horizontal, easing distance = image width)
         animate(1500, t => {
           const e = easeOutCubic(t);
           const startX = zaorskiFinal.x + SIZES.zaorski.w;
           place(elZaorski, startX + (zaorskiFinal.x - startX) * e, zaorskiFinal.y, e);
         }),
-        // sie: bottom → top (vertical, easing distance = image height)
         animate(2000, t => {
           const e = easeOutCubic(t);
           const startY = sieFinal.y + SIZES.sie.h;
           place(elSie, sieFinal.x, startY + (sieFinal.y - startY) * e, e);
         }),
-        // dots: eases in together with sie (bottom → top, same timing)
         animate(2000, t => {
           const e = easeOutCubic(t);
           const startY = dotsFinal.y + SIZES.dots.h;
@@ -272,14 +487,12 @@
         }),
       ]);
 
-      // Snap final positions
       place(elCzy, czyFinal.x, czyFinal.y, 1);
       place(elZaorski, zaorskiFinal.x, zaorskiFinal.y, 1);
       place(elSie, sieFinal.x, sieFinal.y, 1);
       place(elDots, dotsFinal.x, dotsFinal.y, 1);
 
-      // --- 4. Wait 2 seconds, then ease skonczyl very slowly (1500ms) ---
-      //        While skonczyl eases in, dots fades out
+      // --- 4. Wait 2 seconds, ease skonczyl + fade dots ---
       await new Promise(r => setTimeout(r, 2000));
 
       const skonczylFinal = finalPos('skonczyl');
@@ -289,7 +502,6 @@
           const startX = skonczylFinal.x + SIZES.skonczyl.w;
           place(elSkonczyl, startX + (skonczylFinal.x - startX) * e, skonczylFinal.y, e);
         }),
-        // dots fades out as skonczyl eases in
         animate(1500, t => {
           const e = easeOutCubic(t);
           place(elDots, dotsFinal.x, dotsFinal.y, 1 - e);
@@ -299,31 +511,7 @@
       place(elDots, dotsFinal.x, dotsFinal.y, 0);
     }
 
-    // Kick off after images load
     window.addEventListener('load', run);
-
-    // =====================================================
-    // PROFIT COUNTER (unchanged logic)
-    // =====================================================
-    const BASE = 27249100;
-    const FLUCTUATION_RANGE = 2000;
-
-    function formatPLN(value) {
-      const rounded = Math.round(value);
-      const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '';
-      const abs = Math.abs(rounded);
-      const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
-      return sign + formatted + ' PLN';
-    }
-
-    function updateProfit() {
-      const delta = (Math.random() - 0.5) * FLUCTUATION_RANGE;
-      const current = BASE + delta;
-      document.getElementById('profit').textContent = formatPLN(current);
-    }
-
-    updateProfit();
-    setInterval(updateProfit, 1000);
   </script>
 </body>
 </html>
