@@ -56,12 +56,25 @@
       border: 1px solid;
       border-radius: 4px;
       padding: 4px 10px;
-      text-align: right;
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
       justify-content: flex-end;
       width: 17ch;
+      flex-shrink: 0;
+    }
+    /* Hero image below all-time profit */
+    #hero-link {
+      position: absolute;
+      display: block;
+    }
+    #hero-link img {
+      display: block;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+    #hero-link:hover img {
+      opacity: 1;
     }
     #trades-section {
       background: rgba(0, 0, 0, 0.7);
@@ -112,10 +125,16 @@
       margin-bottom: 8px;
       background: rgba(0, 0, 0, 0.3);
     }
+    /* Closed trade cards have lower border opacity */
+    .trade-closed {
+      border-color: rgba(255, 255, 255, 0.15) !important;
+    }
     .trade-left {
       display: flex;
       align-items: center;
-      flex-shrink: 0;
+      flex-shrink: 1;
+      min-width: 0;
+      overflow: hidden;
     }
     .trade-icon { width: 24px; height: 24px; margin-right: 10px; }
     .trade-pair {
@@ -123,6 +142,7 @@
       font-weight: bold;
       font-size: 1rem;
     }
+    /* Direction label with colored bg */
     .trade-direction {
       font-family: 'Tahoma', 'Arial', sans-serif;
       font-weight: bold;
@@ -130,6 +150,18 @@
       display: inline-block;
       width: 65px;
       margin-left: 8px;
+      text-align: center;
+      padding: 2px 0 0 0;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .trade-direction-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
     }
     .trade-info {
       display: flex;
@@ -139,17 +171,43 @@
       font-size: 0.75rem;
       white-space: nowrap;
     }
-    .trade-info-label { color: #888; margin-right: 3px; }
+    .trade-info-label {
+      color: #888;
+      margin-right: 3px;
+      display: inline-block;
+      width: 35px;
+      text-align: right;
+    }
     .trade-info-price {
       font-family: 'Courier New', Consolas, monospace;
       color: #fff;
       margin-right: 10px;
+      display: inline-block;
+      width: 90px;
     }
     .trade-info-pct {
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
     }
     .trade-card .pnl-box { font-size: 13px; }
+    /* PnL box with percentage inside */
+    .pnl-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      width: 100%;
+    }
+    .pnl-value {
+      text-align: right;
+      width: 100%;
+    }
+    .pnl-pct {
+      font-family: 'Courier New', Consolas, monospace;
+      font-size: 0.65em;
+      text-align: left;
+      width: 100%;
+      opacity: 0.8;
+    }
     .trades-separator {
       border: none;
       border-top: 1px solid rgba(255, 255, 255, 0.15);
@@ -167,7 +225,7 @@
       line-height: 1.5;
       min-height: 40px;
     }
-    #quote-text { display: inline; }
+    #quote-text { display: inline; white-space: pre-wrap; }
     #quote-cursor {
       display: inline-block;
       width: 8px; height: 1em;
@@ -191,6 +249,9 @@
         <div class="section-label">All-time profit</div>
         <div id="alltime-pnl" class="pnl-box" style="font-size:60px"></div>
       </div>
+      <a id="hero-link" href="https://bigshortbets.com/" target="_blank" rel="noopener noreferrer">
+        <img id="hero-img" src="hero.png" alt="BigShortBets">
+      </a>
     </div>
     <div id="trades-section">
       <div class="section-header">OTWARTE POZYCJE<span class="pulse-dot-wrapper"><span id="pulse-dot" class="pulse-dot"></span></span></div>
@@ -215,17 +276,20 @@
       sie: { x: 0, y: 127 }, dots: { x: 145, y: 173 },
       skonczyl: { x: 175, y: 125 },
       alltimeProfit: { x: 0, y: 25 },
+      heroGap: 5,
       tradesTopMargin: 40, tradesWidthPercent: 40,
       closedTradeHeight: 52, openTradeHeight: 80,
-      pnlHeightRatio: 0.80,
+      openPnlHeightRatio: 0.60,
+      closedPnlHeightRatio: 0.70,
       separatorHeight: 17, closedLabelHeight: 28,
     };
     var MAX_PNL_VALUE = 999999999;
     var TRADE_FLUCTUATION_RANGE = 2000;
     var UPDATE_INTERVAL_MS = 2000;
-    var PULSE_PERIOD_MS = 1000;
+    // Pulse period should match update interval for exactly one cycle per update
+    var PULSE_PERIOD_MS = 2000;
     var RING_DURATION_MS = 600;
-    var QUOTE_TEXT = 'Rolą spekulanta jest przywrócić rynkową równowagę. Są przy tym emocje, jest zabawa, ale i ryzyko. Jeśli spekulant źle oceni sytuację, a punkt równowagi jest w innym miejscu, to przegra.';
+    var QUOTE_TEXT = 'Rol\u0105 spekulanta jest przywr\u00f3ci\u0107 rynkow\u0105 r\u00f3wnowag\u0119. S\u0105 przy tym emocje, jest zabawa, ale i ryzyko.\nJe\u015bli spekulant \u017ale oceni sytuacj\u0119, a punkt r\u00f3wnowagi jest w innym miejscu, to przegra.';
     var QUOTE_BASE_INTERVAL = 100;
     var QUOTE_VARIATION = 70;
 
@@ -294,6 +358,20 @@
       return lerpColor(base, bright, t);
     }
 
+    // Format price to 6 significant digits total
+    function formatPriceSig(value) {
+      var abs = Math.abs(value);
+      if (abs === 0) return '0.00000';
+      if (abs < 1) {
+        // For values < 1, count leading zeros then add 6 sig digits
+        var leadingZeros = Math.max(0, -Math.floor(Math.log10(abs)) - 1);
+        return value.toFixed(leadingZeros + 6);
+      }
+      var intDigits = Math.floor(Math.log10(abs)) + 1;
+      var decimals = Math.max(0, 6 - intDigits);
+      return value.toFixed(decimals);
+    }
+
     function formatPnl(value) {
       var rounded = Math.round(value);
       rounded = Math.max(-MAX_PNL_VALUE, Math.min(MAX_PNL_VALUE, rounded));
@@ -301,18 +379,29 @@
       var abs = Math.abs(rounded);
       return sign + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' PLN';
     }
-    function formatPriceSix(value) { return value.toFixed(6); }
     function formatPct(openP, closeP) {
       if (openP === 0) return '(+0.0%)';
       var pct = ((closeP - openP) / openP) * 100;
       return '(' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%)';
     }
     function pnlColor(value) { return value >= 0 ? COLORS.profit : COLORS.loss; }
-    function updatePnlBox(el, value) {
+    function updatePnlBox(el, value, pctText) {
       if (typeof el === 'string') el = document.getElementById(el);
-      el.textContent = formatPnl(value);
       var color = pnlColor(value);
       el.style.borderColor = color; el.style.color = color;
+      if (pctText !== undefined) {
+        el.innerHTML = '';
+        var inner = document.createElement('div'); inner.className = 'pnl-inner';
+        var valSpan = document.createElement('div'); valSpan.className = 'pnl-value';
+        valSpan.textContent = formatPnl(value);
+        inner.appendChild(valSpan);
+        var pctSpan = document.createElement('div'); pctSpan.className = 'pnl-pct';
+        pctSpan.textContent = pctText;
+        inner.appendChild(pctSpan);
+        el.appendChild(inner);
+      } else {
+        el.textContent = formatPnl(value);
+      }
     }
 
     function layoutSections() {
@@ -326,8 +415,22 @@
       var co = captionOrigin();
       var captionBottom = Math.max(finalPos('skonczyl').y + SIZES.skonczyl.h, finalPos('sie').y + SIZES.sie.h);
       var alltimeEl = document.getElementById('alltime-section');
-      alltimeEl.style.left = (co.x + LAYOUT.alltimeProfit.x) + 'px';
-      alltimeEl.style.top = (captionBottom + LAYOUT.alltimeProfit.y) + 'px';
+      var alltimeX = co.x + LAYOUT.alltimeProfit.x;
+      var alltimeY = captionBottom + LAYOUT.alltimeProfit.y;
+      alltimeEl.style.left = alltimeX + 'px';
+      alltimeEl.style.top = alltimeY + 'px';
+
+      // Position hero image below alltime-section
+      var heroLink = document.getElementById('hero-link');
+      var heroImg = document.getElementById('hero-img');
+      function positionHero() {
+        var alltimeH = alltimeEl.offsetHeight;
+        heroLink.style.left = alltimeX + 'px';
+        heroLink.style.top = (alltimeY + alltimeH + LAYOUT.heroGap) + 'px';
+      }
+      heroImg.onload = positionHero;
+      if (heroImg.complete) positionHero();
+
       var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
       tradesSection.style.marginLeft = scaledLeft + 'px';
       tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
@@ -344,7 +447,7 @@
       openTrades.forEach(function(t) { list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t))); });
       if (openTrades.length > 0 && closedTrades.length > 0) {
         var sep = document.createElement('hr'); sep.className = 'trades-separator'; list.appendChild(sep);
-        var cl = document.createElement('div'); cl.className = 'closed-label'; cl.textContent = 'Zamknięte pozycje'; list.appendChild(cl);
+        var cl = document.createElement('div'); cl.className = 'closed-label'; cl.textContent = 'Zamkni\u0119te pozycje'; list.appendChild(cl);
       }
       closedTrades.forEach(function(t) { list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t))); });
       var openH = LAYOUT.openTradeHeight + 8;
@@ -359,7 +462,10 @@
       card.id = 'trade-card-' + index;
       var cardH = trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight;
       card.style.height = cardH + 'px';
-      card.style.borderColor = pnlColor(trade.pnl);
+      if (trade.open) {
+        card.style.borderColor = pnlColor(trade.pnl);
+      }
+      // Closed cards use CSS rule for low-opacity border
 
       var left = document.createElement('div'); left.className = 'trade-left';
       var icon = document.createElement('img'); icon.className = 'trade-icon';
@@ -370,12 +476,27 @@
       pairSpan.className = 'trade-pair'; pairSpan.id = 'trade-pair-' + index;
       pairSpan.textContent = trade.pair; pairSpan.style.color = pnlColor(trade.pnl);
 
+      // Direction label with bg + bottom bar
       var dirSpan = document.createElement('span');
       dirSpan.className = 'trade-direction'; dirSpan.id = 'trade-dir-' + index;
       var isLong = trade.type === 'long';
-      dirSpan.textContent = isLong ? '↗ Long' : '↘ Short';
-      dirSpan.style.color = isLong ? COLORS.profit : COLORS.loss;
+      var dirColor = isLong ? COLORS.profit : COLORS.loss;
+      var dirRgb = hexToRgb(dirColor);
+      dirSpan.style.color = dirColor;
+      dirSpan.style.backgroundColor = 'rgba(' + dirRgb[0] + ',' + dirRgb[1] + ',' + dirRgb[2] + ',0.2)';
 
+      var dirText = document.createElement('span');
+      dirText.textContent = isLong ? '\u2197 Long' : '\u2198 Short';
+      dirText.style.position = 'relative';
+      dirText.style.zIndex = '1';
+      dirSpan.appendChild(dirText);
+
+      var dirBar = document.createElement('span');
+      dirBar.className = 'trade-direction-bar';
+      dirBar.style.backgroundColor = 'rgba(' + dirRgb[0] + ',' + dirRgb[1] + ',' + dirRgb[2] + ',0.4)';
+      dirSpan.appendChild(dirBar);
+
+      // Price info with column-aligned labels and prices
       var info = document.createElement('span');
       info.className = 'trade-info'; info.id = 'trade-info-' + index;
       buildTradeInfo(info, trade, index);
@@ -383,14 +504,23 @@
       left.appendChild(icon); left.appendChild(pairSpan);
       left.appendChild(dirSpan); left.appendChild(info);
 
+      // PnL box with percentage inside for closed trades
       var pnlBox = document.createElement('div');
       pnlBox.className = 'pnl-box'; pnlBox.id = 'trade-pnl-' + index;
-      var pnlH = Math.round(cardH * LAYOUT.pnlHeightRatio);
+      var ratio = trade.open ? LAYOUT.openPnlHeightRatio : LAYOUT.closedPnlHeightRatio;
+      var pnlH = Math.round(cardH * ratio);
       pnlBox.style.height = pnlH + 'px';
-      var fontSize = trade.open ? Math.round(pnlH * 0.40) : Math.round(pnlH * 0.45);
+      var fontSize = trade.open ? Math.round(pnlH * 0.40) : Math.round(pnlH * 0.40);
       pnlBox.style.fontSize = fontSize + 'px';
-      pnlBox.style.lineHeight = pnlH + 'px';
-      updatePnlBox(pnlBox, trade.pnl);
+      pnlBox.style.lineHeight = '1.2';
+
+      if (!trade.open) {
+        // Show pct inside pnl box for closed trades
+        var pctText = formatPct(trade.openPrice, trade.closePrice);
+        updatePnlBox(pnlBox, trade.pnl, pctText);
+      } else {
+        updatePnlBox(pnlBox, trade.pnl);
+      }
 
       card.appendChild(left); card.appendChild(pnlBox);
       return card;
@@ -398,17 +528,19 @@
 
     function buildTradeInfo(el, trade, index) {
       el.innerHTML = '';
+      // Opening price
       var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw.:'; el.appendChild(lbl);
-      var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSix(trade.openPrice); el.appendChild(price);
+      var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSig(trade.openPrice); el.appendChild(price);
       if (trade.open) {
+        // Current price for open trades
         var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Cena:'; el.appendChild(lbl2);
         var price2 = document.createElement('span'); price2.className = 'trade-info-price'; price2.id = 'trade-current-price-' + index;
-        price2.textContent = formatPriceSix(trade.currentPrice); el.appendChild(price2);
+        price2.textContent = formatPriceSig(trade.currentPrice); el.appendChild(price2);
       } else {
+        // Closing price for closed trades
         var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zamk.:'; el.appendChild(lbl2);
-        var pctSpan = document.createElement('span'); pctSpan.className = 'trade-info-pct';
-        pctSpan.textContent = formatPct(trade.openPrice, trade.closePrice);
-        pctSpan.style.color = pnlColor(trade.pnl); el.appendChild(pctSpan);
+        var price2 = document.createElement('span'); price2.className = 'trade-info-price';
+        price2.textContent = formatPriceSig(trade.closePrice); el.appendChild(price2);
       }
     }
 
@@ -469,10 +601,17 @@
       });
       MOCK_TRADES.forEach(function(t, i) {
         var pnlEl = document.getElementById('trade-pnl-' + i);
-        if (pnlEl) updatePnlBox(pnlEl, t.pnl);
+        if (pnlEl) {
+          if (!t.open) {
+            var pctText = formatPct(t.openPrice, t.closePrice);
+            updatePnlBox(pnlEl, t.pnl, pctText);
+          } else {
+            updatePnlBox(pnlEl, t.pnl);
+          }
+        }
         if (t.open) {
           var priceEl = document.getElementById('trade-current-price-' + i);
-          if (priceEl) priceEl.textContent = formatPriceSix(t.currentPrice);
+          if (priceEl) priceEl.textContent = formatPriceSig(t.currentPrice);
         }
       });
       var totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + t.pnl; }, 0);
