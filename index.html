@@ -188,7 +188,7 @@
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
     }
-    .trade-card .pnl-box { font-size: 15px; width: 22ch; }
+    .trade-card .pnl-box { font-size: 17px; width: 22ch; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
@@ -275,7 +275,7 @@
       skonczyl: { x: 175, y: 125 },
       alltimeProfit: { x: 0, y: 25 },
       heroGap: 5,
-      tradesTopMargin: 40, tradesWidthPercent: 40,
+      tradesTopMargin: 40,
       closedTradeHeight: 52, openTradeHeight: 80,
       openPnlHeightRatio: 0.60,
       closedPnlHeightRatio: 0.55,
@@ -391,12 +391,12 @@
       if (pctText !== undefined) {
         el.innerHTML = '';
         var inner = document.createElement('div'); inner.className = 'pnl-inner';
-        var valSpan = document.createElement('div'); valSpan.className = 'pnl-value';
-        valSpan.textContent = formatPnl(value);
-        inner.appendChild(valSpan);
         var pctSpan = document.createElement('div'); pctSpan.className = 'pnl-pct';
         pctSpan.textContent = pctText;
         inner.appendChild(pctSpan);
+        var valSpan = document.createElement('div'); valSpan.className = 'pnl-value';
+        valSpan.textContent = formatPnl(value);
+        inner.appendChild(valSpan);
         el.appendChild(inner);
       } else {
         el.textContent = formatPnl(value);
@@ -434,9 +434,16 @@
       var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
       tradesSection.style.marginLeft = scaledLeft + 'px';
       tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
-      tradesSection.style.width = LAYOUT.tradesWidthPercent + '%';
       quoteSection.style.marginLeft = scaledLeft + 'px';
-      quoteSection.style.width = LAYOUT.tradesWidthPercent + '%';
+
+      // Compute trades/quote width to match alltime section's right edge
+      window.alignTradesWidth = function() {
+        var alltimeRight = (alltimeX + alltimeEl.offsetWidth) * LAYOUT.scale;
+        var w = alltimeRight - scaledLeft;
+        tradesSection.style.width = w + 'px';
+        quoteSection.style.width = w + 'px';
+      };
+      window.alignTradesWidth();
     }
 
     function renderTrades() {
@@ -524,7 +531,9 @@
         var pctText = formatPct(trade.openPrice, trade.closePrice);
         updatePnlBox(pnlBox, trade.pnl, pctText);
       } else {
-        updatePnlBox(pnlBox, trade.pnl);
+        // Show pct inside pnl box for open trades too
+        var pctText = formatPct(trade.openPrice, trade.currentPrice);
+        updatePnlBox(pnlBox, trade.pnl, pctText);
       }
 
       card.appendChild(left); card.appendChild(pnlBox);
@@ -611,7 +620,8 @@
             var pctText = formatPct(t.openPrice, t.closePrice);
             updatePnlBox(pnlEl, t.pnl, pctText);
           } else {
-            updatePnlBox(pnlEl, t.pnl);
+            var pctText = formatPct(t.openPrice, t.currentPrice);
+            updatePnlBox(pnlEl, t.pnl, pctText);
           }
         }
         if (t.open) {
@@ -656,6 +666,7 @@
       renderTrades();
       startContinuousPulse();
       updateSimulation();
+      window.alignTradesWidth();
       if (window.positionHero) window.positionHero();
       setInterval(updateSimulation, UPDATE_INTERVAL_MS);
       startTypewriter();
