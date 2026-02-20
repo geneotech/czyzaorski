@@ -27,6 +27,7 @@
     }
     #images-section {
       position: relative;
+      transform-origin: top left;
     }
     .anim-img {
       position: absolute;
@@ -36,6 +37,9 @@
     #profit-section {
       text-align: center;
       padding: 2rem 0;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      min-height: 50vh;
     }
     #profit-section h1 {
       font-size: 3rem;
@@ -60,6 +64,7 @@
       <img id="czy" class="anim-img" src="czy.png">
       <img id="img-zaorski" class="anim-img" src="zaorski.png">
       <img id="sie" class="anim-img" src="sie.png">
+      <img id="dots" class="anim-img" src="dots.png">
       <img id="skonczyl" class="anim-img" src="skonczyl.png">
     </div>
     <div id="profit-section">
@@ -73,6 +78,9 @@
     // CONFIGURABLE OFFSETS — adjust these to taste
     // =====================================================
     const LAYOUT = {
+      // Scale factor for the entire images section (1.0 = 100%)
+      scale: 0.7,
+
       // zaor512.png final position (top-left corner of the page)
       zaor: { x: 20, y: 20 },
 
@@ -86,6 +94,7 @@
       czy:      { x: 0,   y: 0 },
       zaorski:  { x: 210, y: 1 },
       sie:      { x: 0,   y: 127 },
+      dots:     { x: 141, y: 137 },
       skonczyl: { x: 175, y: 125 },
     };
     // =====================================================
@@ -96,6 +105,7 @@
       czy:      { w: 191, h: 99 },
       zaorski:  { w: 402, h: 77 },
       sie:      { w: 141, h: 94 },
+      dots:     { w: 88,  h: 28 },
       skonczyl: { w: 488, h: 98 },
     };
 
@@ -158,6 +168,42 @@
       requestAnimationFrame(tick);
     }
 
+    // Position profit section below the scaled images area
+    function layoutProfitSection() {
+      const section = document.getElementById('images-section');
+      const profitSection = document.getElementById('profit-section');
+
+      // Compute total image group bounds (in unscaled coordinates)
+      const rightEdge = Math.max(
+        LAYOUT.zaor.x + SIZES.zaor.w,
+        finalPos('zaorski').x + SIZES.zaorski.w,
+        finalPos('skonczyl').x + SIZES.skonczyl.w
+      );
+      const bottomEdge = Math.max(
+        LAYOUT.zaor.y + SIZES.zaor.h,
+        finalPos('sie').y + SIZES.sie.h,
+        finalPos('skonczyl').y + SIZES.skonczyl.h
+      );
+
+      // Apply scale to images section
+      section.style.transform = 'scale(' + LAYOUT.scale + ')';
+      // The scaled height is used for document flow
+      section.style.height = (bottomEdge + 20) + 'px';
+      // CSS transform: scale() doesn't change the element's layout box — it still
+      // occupies its full unscaled height in the document flow. We add a negative
+      // margin-bottom equal to the hidden portion so the next element (profit section)
+      // sits directly below the visually scaled images instead of leaving a large gap.
+      section.style.marginBottom = -((1 - LAYOUT.scale) * (bottomEdge + 20)) + 'px';
+
+      // Profit container: same left padding as zaor512, stretches right
+      const scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
+      profitSection.style.position = 'relative';
+      profitSection.style.marginLeft = scaledLeft + 'px';
+      profitSection.style.marginRight = '0';
+      profitSection.style.width = 'calc(100% - ' + scaledLeft + 'px)';
+      profitSection.style.textAlign = 'center';
+    }
+
     // =====================================================
     // MAIN ANIMATION SEQUENCE
     // =====================================================
@@ -167,7 +213,11 @@
       const elCzy = document.getElementById('czy');
       const elZaorski = document.getElementById('img-zaorski');
       const elSie = document.getElementById('sie');
+      const elDots = document.getElementById('dots');
       const elSkonczyl = document.getElementById('skonczyl');
+
+      // Position profit section immediately so it doesn't jump
+      layoutProfitSection();
 
       // --- 1. Fade in background from black (500ms) ---
       await animate(500, t => { bg.style.opacity = easeOutCubic(t); });
@@ -189,10 +239,11 @@
       zaorState.x = zaorFinal.x;
       zaorState.opacity = 1;
 
-      // --- 3. Simultaneously animate czy, zaorski, sie (500ms) ---
+      // --- 3. Simultaneously animate czy, zaorski, sie + dots (500ms) ---
       const czyFinal = finalPos('czy');
       const zaorskiFinal = finalPos('zaorski');
       const sieFinal = finalPos('sie');
+      const dotsFinal = finalPos('dots');
 
       await Promise.all([
         // czy: top → down (vertical, easing distance = image height)
@@ -213,52 +264,39 @@
           const startY = sieFinal.y + SIZES.sie.h;
           place(elSie, sieFinal.x, startY + (sieFinal.y - startY) * e, e);
         }),
+        // dots: eases in together with sie (bottom → top, same timing)
+        animate(2000, t => {
+          const e = easeOutCubic(t);
+          const startY = dotsFinal.y + SIZES.dots.h;
+          place(elDots, dotsFinal.x, startY + (dotsFinal.y - startY) * e, e);
+        }),
       ]);
 
       // Snap final positions
       place(elCzy, czyFinal.x, czyFinal.y, 1);
       place(elZaorski, zaorskiFinal.x, zaorskiFinal.y, 1);
       place(elSie, sieFinal.x, sieFinal.y, 1);
+      place(elDots, dotsFinal.x, dotsFinal.y, 1);
 
-      // --- 4. Wait 2 seconds, then ease skonczyl very slowly (3000ms) ---
+      // --- 4. Wait 2 seconds, then ease skonczyl very slowly (1500ms) ---
+      //        While skonczyl eases in, dots fades out
       await new Promise(r => setTimeout(r, 2000));
 
       const skonczylFinal = finalPos('skonczyl');
-      await animate(1500, t => {
-        const e = easeOutCubic(t);
-        const startX = skonczylFinal.x + SIZES.skonczyl.w;
-        place(elSkonczyl, startX + (skonczylFinal.x - startX) * e, skonczylFinal.y, e);
-      });
+      await Promise.all([
+        animate(1500, t => {
+          const e = easeOutCubic(t);
+          const startX = skonczylFinal.x + SIZES.skonczyl.w;
+          place(elSkonczyl, startX + (skonczylFinal.x - startX) * e, skonczylFinal.y, e);
+        }),
+        // dots fades out as skonczyl eases in
+        animate(1500, t => {
+          const e = easeOutCubic(t);
+          place(elDots, dotsFinal.x, dotsFinal.y, 1 - e);
+        }),
+      ]);
       place(elSkonczyl, skonczylFinal.x, skonczylFinal.y, 1);
-
-      // --- 5. Position profit section below images ---
-      layoutProfitSection();
-    }
-
-    // Position profit section centered under the image group
-    function layoutProfitSection() {
-      const section = document.getElementById('images-section');
-      const profitSection = document.getElementById('profit-section');
-
-      // Compute total image group bounds
-      const rightEdge = Math.max(
-        LAYOUT.zaor.x + SIZES.zaor.w,
-        finalPos('zaorski').x + SIZES.zaorski.w,
-        finalPos('skonczyl').x + SIZES.skonczyl.w
-      );
-      const bottomEdge = Math.max(
-        LAYOUT.zaor.y + SIZES.zaor.h,
-        finalPos('sie').y + SIZES.sie.h,
-        finalPos('skonczyl').y + SIZES.skonczyl.h
-      );
-
-      // Set images-section height so profit flows below
-      section.style.height = (bottomEdge + 20) + 'px';
-
-      // Center profit within the image group width
-      profitSection.style.position = 'relative';
-      profitSection.style.width = rightEdge + 'px';
-      profitSection.style.textAlign = 'center';
+      place(elDots, dotsFinal.x, dotsFinal.y, 0);
     }
 
     // Kick off after images load
