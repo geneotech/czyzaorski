@@ -126,7 +126,7 @@
       margin-left: 6px;
       display: inline-block;
       text-align: center;
-      padding: 2px 6px 0 6px;
+      padding: 2px 6px 2px 6px;
       border-radius: 3px;
       position: relative;
       overflow: hidden;
@@ -136,7 +136,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 3px;
+      height: 0px;
     }
     #trades-section {
       background: rgba(0, 0, 0, 0.7);
@@ -219,7 +219,7 @@
       width: 65px;
       margin-left: 8px;
       text-align: center;
-      padding: 2px 0 0 0;
+      padding: 2px 0 2px 0;
       border-radius: 3px;
       position: relative;
       overflow: hidden;
@@ -229,7 +229,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 3px;
+      height: 2px;
     }
     .trade-info {
       display: flex;
@@ -370,7 +370,7 @@
     </div>
     <div id="powered-by">
       <a href="https://gains.trade" target="_blank" rel="noopener noreferrer">
-        Powered by <img src="gtrade.svg" alt=""><span class="gtrade-name">gTrade</span>
+        Trades powered by &nbsp; <img src="gtrade.svg" alt=""><span class="gtrade-name">gTrade</span>
       </a>
     </div>
   </div>
@@ -596,7 +596,7 @@
       tradesSection.style.marginLeft = scaledLeft + 'px';
       tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
       quoteSection.style.marginLeft = scaledLeft + 'px';
-      poweredBy.style.marginLeft = scaledLeft + 'px';
+      poweredBy.style.marginLeft = 5 + scaledLeft + 'px';
 
       // Compute trades/quote width to match alltime section's right edge
       window.alignTradesWidth = function() {
@@ -726,7 +726,7 @@
     function buildTradeInfo(el, trade, index) {
       el.innerHTML = '';
       var row1 = document.createElement('div'); row1.className = 'trade-info-row';
-      var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw.:';
+      var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw:';
       var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSig(trade.openPrice);
       row1.appendChild(lbl); row1.appendChild(price); el.appendChild(row1);
       var row2 = document.createElement('div'); row2.className = 'trade-info-row';
@@ -735,7 +735,7 @@
         var price2 = document.createElement('span'); price2.className = 'trade-info-price'; price2.id = 'trade-current-price-' + index;
         price2.textContent = formatPriceSig(trade.currentPrice);
       } else {
-        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zamk.:';
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zam:';
         var price2 = document.createElement('span'); price2.className = 'trade-info-price';
         price2.textContent = formatPriceSig(trade.closePrice);
       }
