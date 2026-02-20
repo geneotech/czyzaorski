@@ -258,9 +258,15 @@
       margin-left: 6px;
       display: inline-block;
       width: 90px;
-      /* nudge monospace prices down to visually align with proportional labels */
       position: relative;
+    }
+    .trade-closed .trade-info-price {
+      /* closed cards use smaller font — 1px nudge is enough */
       top: 1px;
+    }
+    .trade-open .trade-info-price {
+      /* open cards use larger font — needs 2px nudge */
+      top: 2px;
     }
     .trade-info-pct {
       font-family: 'Courier New', Consolas, monospace;
@@ -402,7 +408,6 @@
       separatorHeight: 17, closedLabelHeight: 28,
     };
     var MAX_PNL_VALUE = 999999999;
-    var TRADE_FLUCTUATION_RANGE = 2000;
     var UPDATE_INTERVAL_MS = 2000;
     // Pulse period should match update interval for exactly one cycle per update
     var PULSE_PERIOD_MS = 2000;
@@ -431,11 +436,17 @@
       'BTC/USD': 'tokens/btc.svg', 'ETH/USD': 'tokens/eth.svg',
     };
     var MOCK_TRADES = [
-      { pair: 'XAU/USD', pnl: 15420,  open: true,  type: 'short',  openPrice: 2341.85, currentPrice: 2341.85, leverage: 200 },
-      { pair: 'XAG/USD', pnl: -2200,  open: false, type: 'long', openPrice: 28.423, closePrice: 29.105, leverage: 50 },
-      { pair: 'BTC/USD', pnl: 287510,   open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5, leverage: 1.1 },
-      { pair: 'ETH/USD', pnl: -34311,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75, leverage: 9.4 },
+      { pair: 'XAU/USD', collateral: 500,   open: true,  type: 'short', openPrice: 2341.85, currentPrice: 2341.85, leverage: 200 },
+      { pair: 'XAG/USD', collateral: 2000,  open: false, type: 'long',  openPrice: 28.423,  closePrice: 29.105,   leverage: 50 },
+      { pair: 'BTC/USD', collateral: 50000, open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5,  leverage: 1.1 },
+      { pair: 'ETH/USD', collateral: 5000,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75,  leverage: 9.4 },
     ];
+    // PnL = collateral × leverage × (price − open) / open; negated for shorts
+    function calcPnl(trade) {
+      var price = trade.open ? trade.currentPrice : trade.closePrice;
+      var diff = trade.type === 'short' ? (trade.openPrice - price) : (price - trade.openPrice);
+      return trade.collateral * trade.leverage * diff / trade.openPrice;
+    }
     var SIZES = {
       zaor: { w: 512, h: 512 }, czy: { w: 191, h: 99 },
       zaorski: { w: 402, h: 77 }, sie: { w: 141, h: 94 },
@@ -638,7 +649,7 @@
       var cardH = trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight;
       card.style.height = cardH + 'px';
       if (trade.open) {
-        card.style.borderColor = pnlColor(trade.pnl);
+        card.style.borderColor = pnlColor(calcPnl(trade));
       }
       // Closed cards use CSS rule for low-opacity border
 
@@ -651,7 +662,7 @@
       pairSpan.className = 'trade-pair'; pairSpan.id = 'trade-pair-' + index;
       pairSpan.textContent = trade.pair;
       if (trade.open) {
-        pairSpan.style.color = pnlColor(trade.pnl);
+        pairSpan.style.color = pnlColor(calcPnl(trade));
       } else {
         pairSpan.style.color = 'rgba(255, 255, 255, 0.9)';
       }
@@ -715,11 +726,11 @@
       if (!trade.open) {
         // Show pct inside pnl box for closed trades
         var pctText = formatPct(trade.openPrice, trade.closePrice, trade.type, trade.leverage);
-        updatePnlBox(pnlBox, trade.pnl, pctText);
+        updatePnlBox(pnlBox, calcPnl(trade), pctText);
       } else {
         // Show pct inside pnl box for open trades too
         var pctText = formatPct(trade.openPrice, trade.currentPrice, trade.type, trade.leverage);
-        updatePnlBox(pnlBox, trade.pnl, pctText);
+        updatePnlBox(pnlBox, calcPnl(trade), pctText);
       }
 
       var right = document.createElement('div'); right.className = 'trade-right';
@@ -756,7 +767,7 @@
         dot.style.backgroundColor = lerpColor(COLORS.profit, COLORS.profitBright, t);
         MOCK_TRADES.forEach(function(trade, i) {
           if (!trade.open) return;
-          var color = currentPnlColor(trade.pnl, t);
+          var color = currentPnlColor(calcPnl(trade), t);
           var card = document.getElementById('trade-card-' + i);
           var pair = document.getElementById('trade-pair-' + i);
           var pnlEl = document.getElementById('trade-pnl-' + i);
@@ -798,27 +809,23 @@
     function updateSimulation() {
       MOCK_TRADES.forEach(function(t) {
         if (t.open) {
-          t.pnl += (detRandom() - 0.5) * TRADE_FLUCTUATION_RANGE * (t.leverage || 1);
           t.currentPrice += (detRandom() - 0.5) * t.currentPrice * 0.001;
         }
       });
       MOCK_TRADES.forEach(function(t, i) {
+        var pnl = calcPnl(t);
         var pnlEl = document.getElementById('trade-pnl-' + i);
         if (pnlEl) {
-          if (!t.open) {
-            var pctText = formatPct(t.openPrice, t.closePrice, t.type, t.leverage);
-            updatePnlBox(pnlEl, t.pnl, pctText);
-          } else {
-            var pctText = formatPct(t.openPrice, t.currentPrice, t.type, t.leverage);
-            updatePnlBox(pnlEl, t.pnl, pctText);
-          }
+          var closeP = t.open ? t.currentPrice : t.closePrice;
+          var pctText = formatPct(t.openPrice, closeP, t.type, t.leverage);
+          updatePnlBox(pnlEl, pnl, pctText);
         }
         if (t.open) {
           var priceEl = document.getElementById('trade-current-price-' + i);
           if (priceEl) priceEl.textContent = formatPriceSig(t.currentPrice);
         }
       });
-      var totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + t.pnl; }, 0);
+      var totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + calcPnl(t); }, 0);
       updatePnlBox('alltime-pnl', totalPnl);
       spawnRing();
     }
