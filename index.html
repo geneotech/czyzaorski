@@ -234,7 +234,7 @@
       'BTC/USD': 'tokens/btc.svg', 'ETH/USD': 'tokens/eth.svg',
     };
     var MOCK_TRADES = [
-      { pair: 'XAU/USD', pnl: 15420,  open: true,  type: 'long',  openPrice: 2341.85, currentPrice: 2341.85 },
+      { pair: 'XAU/USD', pnl: 15420,  open: true,  type: 'short',  openPrice: 2341.85, currentPrice: 2341.85 },
       { pair: 'XAG/USD', pnl: -3200,  open: false, type: 'short', openPrice: 28.423, closePrice: 29.105 },
       { pair: 'BTC/USD', pnl: 8750,   open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5 },
       { pair: 'ETH/USD', pnl: -1500,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75 },
@@ -373,7 +373,7 @@
       var dirSpan = document.createElement('span');
       dirSpan.className = 'trade-direction'; dirSpan.id = 'trade-dir-' + index;
       var isLong = trade.type === 'long';
-      dirSpan.textContent = isLong ? 'Long ↑' : 'Short ↓';
+      dirSpan.textContent = isLong ? '↗ Long' : '↘ Short';
       dirSpan.style.color = isLong ? COLORS.profit : COLORS.loss;
 
       var info = document.createElement('span');
