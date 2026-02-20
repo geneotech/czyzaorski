@@ -436,10 +436,10 @@
       'BTC/USD': 'tokens/btc.svg', 'ETH/USD': 'tokens/eth.svg',
     };
     var MOCK_TRADES = [
-      { pair: 'XAU/USD', collateral: 500,   open: true,  type: 'short', openPrice: 2341.85, currentPrice: 2341.85, leverage: 200 },
-      { pair: 'XAG/USD', collateral: 2000,  open: false, type: 'long',  openPrice: 28.423,  closePrice: 29.105,   leverage: 50 },
-      { pair: 'BTC/USD', collateral: 50000, open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5,  leverage: 1.1 },
-      { pair: 'ETH/USD', collateral: 5000,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75,  leverage: 9.4 },
+      { pair: 'XAU/USD', collateral: 141200,   open: true,  type: 'short', openPrice: 2341.85, currentPrice: 2341.85, leverage: 200 },
+      { pair: 'XAG/USD', collateral: 20000,  open: false, type: 'long',  openPrice: 28.423,  closePrice: 29.105,   leverage: 50 },
+      { pair: 'BTC/USD', collateral: 1840000, open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5,  leverage: 1.1 },
+      { pair: 'ETH/USD', collateral: 145000,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75,  leverage: 9.4 },
     ];
     // PnL = collateral × leverage × (price − open) / open; negated for shorts
     function calcPnl(trade) {
