@@ -3,7 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>czyzaorskisieskonczyl.info</title>
+  <title>Czy zaorski się skończył?</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta property="og:title" content="Czy zaorski się skończył?">
+  <meta property="og:description" content="Czy zaorski się skończył?">
+  <meta property="og:image" content="https://czyzaorskisieskonczyl.info/zaor512.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Czy zaorski się skończył?">
+  <meta name="twitter:description" content="Czy zaorski się skończył?">
+  <meta name="twitter:image" content="https://czyzaorskisieskonczyl.info/zaor512.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -115,6 +124,19 @@
       font-weight: bold;
       font-size: 0.8rem;
       margin-left: 6px;
+      display: inline-block;
+      text-align: center;
+      padding: 2px 6px 0 6px;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .trade-leverage-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
     }
     #trades-section {
       background: rgba(0, 0, 0, 0.7);
@@ -217,6 +239,9 @@
       font-size: 0.95rem;
       white-space: nowrap;
     }
+    .trade-open .trade-info {
+      font-size: 1.15rem;
+    }
     .trade-info-row {
       display: flex;
       align-items: center;
@@ -288,13 +313,12 @@
       align-items: center;
       gap: 6px;
       font-size: 1.5rem;
-      font-family:Lato,"Lucida Sans Unicode","Trebuchet MS",sans-serif;
+      font-family: Lato, "Lucida Sans Unicode", "Trebuchet MS", sans-serif;
       color: #ccc;
     }
     #powered-by a {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
       color: #ccc;
       text-decoration: none;
       opacity: 0.8;
@@ -303,8 +327,14 @@
       opacity: 1;
     }
     #powered-by img {
-      width: 18px;
-      height: 18px;
+      width: var(--gtrade-icon-size, 28px);
+      height: var(--gtrade-icon-size, 28px);
+    }
+    #powered-by .gtrade-name {
+      font-weight: bold;
+      text-rendering: optimizeLegibility;
+      letter-spacing: -0.5px;
+      margin-left: var(--gtrade-gap, 6px);
     }
   </style>
 </head>
@@ -340,7 +370,7 @@
     </div>
     <div id="powered-by">
       <a href="https://gains.trade" target="_blank" rel="noopener noreferrer">
-        Powered by <img src="gtrade.svg" alt="">  gTrade
+        Powered by <img src="gtrade.svg" alt=""><span class="gtrade-name">gTrade</span>
       </a>
     </div>
   </div>
@@ -641,11 +671,23 @@
       dirBar.style.backgroundColor = 'rgba(' + dirRgb[0] + ',' + dirRgb[1] + ',' + dirRgb[2] + ',0.4)';
       dirSpan.appendChild(dirBar);
 
-      // Leverage label
+      // Leverage label with bg + bottom bar (like direction)
       var levSpan = document.createElement('span');
       levSpan.className = 'trade-leverage';
       levSpan.style.color = dirColor;
-      levSpan.textContent = formatLeverage(trade.leverage);
+      var levRgb = hexToRgb(dirColor);
+      levSpan.style.backgroundColor = 'rgba(' + levRgb[0] + ',' + levRgb[1] + ',' + levRgb[2] + ',0.2)';
+
+      var levText = document.createElement('span');
+      levText.textContent = formatLeverage(trade.leverage);
+      levText.style.position = 'relative';
+      levText.style.zIndex = '1';
+      levSpan.appendChild(levText);
+
+      var levBar = document.createElement('span');
+      levBar.className = 'trade-leverage-bar';
+      levBar.style.backgroundColor = 'rgba(' + levRgb[0] + ',' + levRgb[1] + ',' + levRgb[2] + ',0.4)';
+      levSpan.appendChild(levBar);
 
       // Price info with column-aligned labels and prices
       var info = document.createElement('span');
