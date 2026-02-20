@@ -55,7 +55,7 @@
       background: rgba(0, 0, 0, 0.8);
       border: 1px solid;
       border-radius: 4px;
-      padding: 4px 10px;
+      padding: 2px 10px;
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
@@ -238,8 +238,8 @@
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
     }
-    .trade-card .pnl-box { font-size: 17px; width: 26ch; }
-    .trade-closed .pnl-box { font-size: 28px; width: 34ch; }
+    .trade-card .pnl-box { font-size: 17px; width: 23ch; }
+    .trade-closed .pnl-box { font-size: 28px; width: 23ch; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
@@ -287,7 +287,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.85rem;
+      font-size: 1.5rem;
+      font-family:Lato,"Lucida Sans Unicode","Trebuchet MS",sans-serif;
       color: #ccc;
     }
     #powered-by a {
@@ -339,7 +340,7 @@
     </div>
     <div id="powered-by">
       <a href="https://gains.trade" target="_blank" rel="noopener noreferrer">
-        Powered by <img src="gtrade.svg" alt=""> gTrade
+        Powered by <img src="gtrade.svg" alt="">  gTrade
       </a>
     </div>
   </div>
@@ -660,7 +661,7 @@
       var ratio = trade.open ? LAYOUT.openPnlHeightRatio : LAYOUT.closedPnlHeightRatio;
       var pnlH = Math.round(cardH * ratio);
       pnlBox.style.height = pnlH + 'px';
-      var fontSize = trade.open ? Math.round(pnlH * 0.40) : Math.round(pnlH * 0.40);
+      var fontSize = trade.open ? Math.round(pnlH * 0.50) : Math.round(pnlH * 0.60);
       pnlBox.style.fontSize = fontSize + 'px';
       pnlBox.style.lineHeight = '1.2';
 
