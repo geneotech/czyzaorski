@@ -239,7 +239,7 @@
       font-weight: bold;
     }
     .trade-card .pnl-box { font-size: 17px; width: 26ch; }
-    .trade-closed .pnl-box { font-size: 24px; width: 30ch; }
+    .trade-closed .pnl-box { font-size: 28px; width: 34ch; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
@@ -272,7 +272,7 @@
       color: #ccc;
       font-size: 0.9rem;
       line-height: 1.5;
-      min-height: 40px;
+      min-height: 80px;
     }
     #quote-text { display: inline; white-space: pre-wrap; }
     #quote-cursor {
@@ -281,6 +281,29 @@
       background: #fff;
       vertical-align: text-bottom;
       margin-left: 1px;
+    }
+    #powered-by {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+    #powered-by a {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: #ccc;
+      text-decoration: none;
+      opacity: 0.8;
+    }
+    #powered-by a:hover {
+      opacity: 1;
+    }
+    #powered-by img {
+      width: 18px;
+      height: 18px;
     }
   </style>
 </head>
@@ -313,6 +336,11 @@
     </div>
     <div id="quote-section">
       <span id="quote-text"></span><span id="quote-cursor"></span>
+    </div>
+    <div id="powered-by">
+      <a href="https://gains.trade" target="_blank" rel="noopener noreferrer">
+        Powered by <img src="gtrade.svg" alt=""> gTrade
+      </a>
     </div>
   </div>
   <script>
@@ -533,9 +561,11 @@
       document.getElementById('bigsb-link').href = BIGSB_URL;
 
       var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
+      var poweredBy = document.getElementById('powered-by');
       tradesSection.style.marginLeft = scaledLeft + 'px';
       tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
       quoteSection.style.marginLeft = scaledLeft + 'px';
+      poweredBy.style.marginLeft = scaledLeft + 'px';
 
       // Compute trades/quote width to match alltime section's right edge
       window.alignTradesWidth = function() {
@@ -543,6 +573,7 @@
         var w = alltimeRight - scaledLeft;
         tradesSection.style.width = w + 'px';
         quoteSection.style.width = w + 'px';
+        poweredBy.style.width = w + 'px';
       };
       window.alignTradesWidth();
     }
