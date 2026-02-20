@@ -78,28 +78,43 @@
     #bigsb-section {
       position: absolute;
       background: rgba(0, 0, 0, 0.7);
-      border: 1px solid rgba(80, 140, 255, 0.5);
+      border: 1px solid rgba(60, 60, 255, 0.5);
       border-radius: 6px;
       padding: 6px 12px;
       display: flex;
       align-items: center;
       gap: 8px;
       white-space: nowrap;
+      box-sizing: border-box;
     }
     .bigsb-label {
       font-size: 14px;
       color: #aaa;
       letter-spacing: 0.03em;
     }
+    .bigsb-ticker-link {
+      color: #4444ff;
+      text-decoration: underline;
+      opacity: 0.8;
+    }
+    .bigsb-ticker-link:hover {
+      opacity: 1;
+    }
     .bigsb-value {
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
       font-size: 16px;
-      color: #6cacff;
+      color: #4444ff;
     }
     .bigsb-icon {
       width: 22px;
       height: 22px;
+    }
+    .trade-leverage {
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-weight: bold;
+      font-size: 0.8rem;
+      margin-left: 6px;
     }
     #trades-section {
       background: rgba(0, 0, 0, 0.7);
@@ -214,8 +229,8 @@
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
     }
-    .trade-card .pnl-box { font-size: 17px; width: 24ch; }
-    .trade-closed .pnl-box { font-size: 19px; }
+    .trade-card .pnl-box { font-size: 17px; width: 26ch; }
+    .trade-closed .pnl-box { font-size: 21px; width: 28ch; }
     /* PnL box with percentage inside */
     .pnl-inner {
       display: flex;
@@ -278,7 +293,7 @@
         <img id="hero-img" src="hero.png" alt="BigShortBets">
       </a>
       <div id="bigsb-section">
-        <span class="bigsb-label">$BIGSB burned:</span>
+        <span class="bigsb-label"><a id="bigsb-link" class="bigsb-ticker-link" href="#" target="_blank" rel="noopener noreferrer">$BIGSB</a> burned:</span>
         <span id="bigsb-value" class="bigsb-value">0</span>
         <img class="bigsb-icon" src="tokens/bigsb.webp" alt="BIGSB">
       </div>
@@ -325,16 +340,30 @@
     var QUOTE_BASE_INTERVAL = 100;
     var QUOTE_VARIATION = 70;
     var BIGSB_BURNED = 142857;
+    var BIGSB_URL = 'https://www.geckoterminal.com/eth/pools/0x149148acc3b06b8cc73af3a10e84189243a35925?utm_source=coingecko&utm_medium=referral&utm_campaign=livechart';
+
+    // Deterministic seeded PRNG (mulberry32) — change seed to get different reproducible sequences
+    var RNG_SEED = 42;
+    var _rngState = RNG_SEED;
+    function seedRandom() {
+      _rngState = RNG_SEED;
+    }
+    function detRandom() {
+      _rngState |= 0; _rngState = _rngState + 0x6D2B79F5 | 0;
+      var t = Math.imul(_rngState ^ _rngState >>> 15, 1 | _rngState);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
 
     var TOKEN_ICONS = {
       'XAU/USD': 'tokens/xau.svg', 'XAG/USD': 'tokens/xag.svg',
       'BTC/USD': 'tokens/btc.svg', 'ETH/USD': 'tokens/eth.svg',
     };
     var MOCK_TRADES = [
-      { pair: 'XAU/USD', pnl: 15420,  open: true,  type: 'short',  openPrice: 2341.85, currentPrice: 2341.85 },
-      { pair: 'XAG/USD', pnl: -3200,  open: false, type: 'long', openPrice: 28.423, closePrice: 29.105 },
-      { pair: 'BTC/USD', pnl: 8750,   open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5 },
-      { pair: 'ETH/USD', pnl: -1500,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75 },
+      { pair: 'XAU/USD', pnl: 15420,  open: true,  type: 'short',  openPrice: 2341.85, currentPrice: 2341.85, leverage: 200 },
+      { pair: 'XAG/USD', pnl: -3200,  open: false, type: 'long', openPrice: 28.423, closePrice: 29.105, leverage: 50 },
+      { pair: 'BTC/USD', pnl: 8750,   open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5, leverage: 1.1 },
+      { pair: 'ETH/USD', pnl: -1500,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75, leverage: 9.4 },
     ];
     var SIZES = {
       zaor: { w: 512, h: 512 }, czy: { w: 191, h: 99 },
@@ -417,10 +446,17 @@
       var pct = ((closeP - openP) / openP) * 100;
       var abs = Math.abs(pct);
       if (abs < 0.005) return '(+0.00%)';
-      var formatted = Number(abs.toPrecision(3)).toString();
+      // Always show exactly 3 visible digits (excluding decimal point)
+      var intDigits = Math.floor(abs).toString().length;
+      var decimals = Math.max(0, 3 - intDigits);
+      var formatted = abs.toFixed(decimals);
       return '(' + (pct >= 0 ? '+' : '-') + formatted + '%)';
     }
     function pnlColor(value) { return value >= 0 ? COLORS.profit : COLORS.loss; }
+    function formatLeverage(lev) {
+      if (lev >= 10) return Math.round(lev) + 'x';
+      return lev.toFixed(1) + 'x';
+    }
     function updatePnlBox(el, value, pctText) {
       if (typeof el === 'string') el = document.getElementById(el);
       var color = pnlColor(value);
@@ -469,17 +505,23 @@
       heroImg.onload = window.positionHero;
       if (heroImg.complete) window.positionHero();
 
-      // Position BIGSB section to the right of hero
+      // Position BIGSB section to the right of hero, matching height and alltime right edge
       var bigsbEl = document.getElementById('bigsb-section');
       window.positionBigsb = function() {
         var heroLeft = parseFloat(heroLink.style.left) || 0;
         var heroTop = parseFloat(heroLink.style.top) || 0;
         var heroW = heroImg.offsetWidth || LAYOUT.heroWidth;
-        bigsbEl.style.left = (heroLeft + heroW + LAYOUT.bigsbGap) + 'px';
+        var heroH = heroImg.offsetHeight || 40;
+        var alltimeRight = alltimeX + alltimeEl.offsetWidth;
+        var bigsbLeft = heroLeft + heroW + LAYOUT.bigsbGap;
+        bigsbEl.style.left = bigsbLeft + 'px';
         bigsbEl.style.top = heroTop + 'px';
+        bigsbEl.style.height = (heroH - 2) + 'px';
+        bigsbEl.style.width = (alltimeRight - bigsbLeft) + 'px';
       };
       // Update bigsb value
       document.getElementById('bigsb-value').textContent = BIGSB_BURNED.toLocaleString('en-US');
+      document.getElementById('bigsb-link').href = BIGSB_URL;
 
       var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
       tradesSection.style.marginLeft = scaledLeft + 'px';
@@ -558,13 +600,19 @@
       dirBar.style.backgroundColor = 'rgba(' + dirRgb[0] + ',' + dirRgb[1] + ',' + dirRgb[2] + ',0.4)';
       dirSpan.appendChild(dirBar);
 
+      // Leverage label
+      var levSpan = document.createElement('span');
+      levSpan.className = 'trade-leverage';
+      levSpan.style.color = dirColor;
+      levSpan.textContent = formatLeverage(trade.leverage);
+
       // Price info with column-aligned labels and prices
       var info = document.createElement('span');
       info.className = 'trade-info'; info.id = 'trade-info-' + index;
       buildTradeInfo(info, trade, index);
 
       left.appendChild(icon); left.appendChild(pairSpan);
-      left.appendChild(dirSpan); left.appendChild(info);
+      left.appendChild(dirSpan); left.appendChild(levSpan); left.appendChild(info);
 
       // PnL box with percentage inside for closed trades
       var pnlBox = document.createElement('div');
@@ -659,8 +707,8 @@
     function updateSimulation() {
       MOCK_TRADES.forEach(function(t) {
         if (t.open) {
-          t.pnl += (Math.random() - 0.5) * TRADE_FLUCTUATION_RANGE;
-          t.currentPrice += (Math.random() - 0.5) * t.currentPrice * 0.001;
+          t.pnl += (detRandom() - 0.5) * TRADE_FLUCTUATION_RANGE;
+          t.currentPrice += (detRandom() - 0.5) * t.currentPrice * 0.001;
         }
       });
       MOCK_TRADES.forEach(function(t, i) {
@@ -691,7 +739,7 @@
         if (charIndex < QUOTE_TEXT.length) {
           textEl.textContent += QUOTE_TEXT[charIndex];
           charIndex++;
-          var delay = QUOTE_BASE_INTERVAL + (Math.random() - 0.5) * 2 * QUOTE_VARIATION;
+          var delay = QUOTE_BASE_INTERVAL + (detRandom() - 0.5) * 2 * QUOTE_VARIATION;
           setTimeout(typeNext, Math.max(30, delay));
         } else {
           setTimeout(function() {
