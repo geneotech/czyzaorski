@@ -78,7 +78,7 @@
     #bigsb-section {
       position: absolute;
       background: rgba(0, 0, 0, 0.7);
-      border: 1px solid rgba(60, 60, 255, 0.5);
+      border: 1px solid rgba(60, 60, 255, 1.0);
       border-radius: 6px;
       padding: 6px 12px;
       display: flex;
@@ -88,12 +88,12 @@
       box-sizing: border-box;
     }
     .bigsb-label {
-      font-size: 14px;
+      font-size: 18px;
       color: #aaa;
       letter-spacing: 0.03em;
     }
     .bigsb-ticker-link {
-      color: #4444ff;
+      color: #8888ff;
       text-decoration: underline;
       opacity: 0.8;
     }
@@ -103,12 +103,12 @@
     .bigsb-value {
       font-family: 'Courier New', Consolas, monospace;
       font-weight: bold;
-      font-size: 16px;
-      color: #4444ff;
+      font-size: 20px;
+      color: #8888ff;
     }
     .bigsb-icon {
-      width: 22px;
-      height: 22px;
+      width: 28px;
+      height: 28px;
     }
     .trade-leverage {
       font-family: 'Tahoma', 'Arial', sans-serif;
@@ -516,7 +516,7 @@
         var bigsbLeft = heroLeft + heroW + LAYOUT.bigsbGap;
         bigsbEl.style.left = bigsbLeft + 'px';
         bigsbEl.style.top = heroTop + 'px';
-        bigsbEl.style.height = (heroH - 2) + 'px';
+        bigsbEl.style.height = (heroH + 4) + 'px';
         bigsbEl.style.width = (alltimeRight - bigsbLeft) + 'px';
       };
       // Update bigsb value
