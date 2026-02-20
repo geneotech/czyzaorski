@@ -74,6 +74,8 @@
       padding: 16px;
     }
     .section-header {
+      display: flex;
+      align-items: center;
       font-size: 1.2rem;
       font-weight: bold;
       color: #e0e0e0;
@@ -82,6 +84,24 @@
     }
     #trades-list {
       overflow-y: auto;
+    }
+
+    /* Pulsing dot next to OTWARTE POZYCJE */
+    .pulse-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-left: 10px;
+      transition: opacity 0.3s ease-out;
+    }
+
+    /* Closed trades label */
+    .closed-label {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
     }
 
     /* Trade cards */
@@ -94,6 +114,7 @@
       padding: 0 12px;
       margin-bottom: 8px;
       background: rgba(0, 0, 0, 0.3);
+      transition: border-color 0.3s ease-out;
     }
     .trade-left {
       display: flex;
@@ -107,14 +128,50 @@
     .trade-pair {
       font-weight: bold;
       font-size: 1rem;
+      transition: color 0.3s ease-out;
     }
     .trade-card .pnl-box {
       font-size: 13px;
+    }
+    .trade-open .pnl-box {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
     }
     .trades-separator {
       border: none;
       border-top: 1px solid rgba(255, 255, 255, 0.15);
       margin: 12px 0;
+    }
+
+    /* Quote container */
+    #quote-section {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 12px;
+      font-style: italic;
+      color: #ccc;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      min-height: 40px;
+    }
+    #quote-text {
+      display: inline;
+    }
+    #quote-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1em;
+      background: #fff;
+      vertical-align: text-bottom;
+      margin-left: 1px;
+      animation: blink-cursor 0.6s steps(1) infinite;
+    }
+    @keyframes blink-cursor {
+      0%, 50% { opacity: 1; }
+      50.01%, 100% { opacity: 0; }
     }
   </style>
 </head>
@@ -136,8 +193,12 @@
     </div>
 
     <div id="trades-section">
-      <div class="section-header">OTWARTE POZYCJE</div>
+      <div class="section-header">OTWARTE POZYCJE<span id="pulse-dot" class="pulse-dot"></span></div>
       <div id="trades-list"></div>
+    </div>
+
+    <div id="quote-section">
+      <span id="quote-text"></span><span id="quote-cursor"></span>
     </div>
   </div>
 
@@ -147,7 +208,9 @@
     // =====================================================
     const COLORS = {
       profit: '#4caf50',
+      profitBright: '#66ff6a',
       loss: '#e53935',
+      lossBright: '#ff6b68',
     };
 
     // =====================================================
@@ -176,12 +239,25 @@
       closedTradeHeight: 52,
       openTradeHeight: 80,
 
-      // Separator height (border + margins) for scroll height calc
+      // Open trade PnL box height as fraction of card height
+      openPnlHeightRatio: 0.75,
+
+      // Separator height + "Zamknięte pozycje" label height with margins
       separatorHeight: 17,
+      closedLabelHeight: 28,
     };
 
     const MAX_PNL_VALUE = 999999999;
     const TRADE_FLUCTUATION_RANGE = 2000;
+    const UPDATE_INTERVAL_MS = 1000;
+
+    // Pulse duration (how long the "bright" flash lasts)
+    const PULSE_DURATION_MS = 300;
+
+    // Quote
+    const QUOTE_TEXT = 'Rolą spekulanta jest przywrócić rynkową równowagę. Są przy tym emocje, jest zabawa, ale i ryzyko. Jeśli spekulant źle oceni sytuację, a punkt równowagi jest w innym miejscu, to przegra.';
+    const QUOTE_BASE_INTERVAL = 100;
+    const QUOTE_VARIATION = 70;
     // =====================================================
 
     // =====================================================
@@ -214,7 +290,7 @@
     };
 
     // =====================================================
-    // EASING & ANIMATION (unchanged)
+    // EASING & ANIMATION
     // =====================================================
     function easeOutCubic(t) {
       return 1 - Math.pow(1 - t, 3);
@@ -286,6 +362,10 @@
       return value >= 0 ? COLORS.profit : COLORS.loss;
     }
 
+    function pnlColorBright(value) {
+      return value >= 0 ? COLORS.profitBright : COLORS.lossBright;
+    }
+
     function updatePnlBox(el, value) {
       if (typeof el === 'string') el = document.getElementById(el);
       el.textContent = formatPnl(value);
@@ -300,6 +380,7 @@
     function layoutSections() {
       const section = document.getElementById('images-section');
       const tradesSection = document.getElementById('trades-section');
+      const quoteSection = document.getElementById('quote-section');
 
       const bottomEdge = Math.max(
         LAYOUT.zaor.y + SIZES.zaor.h,
@@ -307,16 +388,10 @@
         finalPos('skonczyl').y + SIZES.skonczyl.h
       );
 
-      // Scale images section
       section.style.transform = 'scale(' + LAYOUT.scale + ')';
       section.style.height = (bottomEdge + 20) + 'px';
-      // CSS transform: scale() doesn't change the element's layout box — it still
-      // occupies its full unscaled height in the document flow. We add a negative
-      // margin-bottom equal to the hidden portion so the next element sits directly
-      // below the visually scaled images instead of leaving a large gap.
       section.style.marginBottom = -((1 - LAYOUT.scale) * (bottomEdge + 20)) + 'px';
 
-      // Position all-time profit section (inside scaled area)
       const co = captionOrigin();
       const captionBottom = Math.max(
         finalPos('skonczyl').y + SIZES.skonczyl.h,
@@ -326,11 +401,13 @@
       alltimeEl.style.left = (co.x + LAYOUT.alltimeProfit.x) + 'px';
       alltimeEl.style.top = (captionBottom + LAYOUT.alltimeProfit.y) + 'px';
 
-      // Position trades section
       const scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
       tradesSection.style.marginLeft = scaledLeft + 'px';
       tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
       tradesSection.style.width = LAYOUT.tradesWidthPercent + '%';
+
+      quoteSection.style.marginLeft = scaledLeft + 'px';
+      quoteSection.style.width = LAYOUT.tradesWidthPercent + '%';
     }
 
     // =====================================================
@@ -351,15 +428,19 @@
         const sep = document.createElement('hr');
         sep.className = 'trades-separator';
         list.appendChild(sep);
+
+        const closedLabel = document.createElement('div');
+        closedLabel.className = 'closed-label';
+        closedLabel.textContent = 'Zamkni\u0119te pozycje';
+        list.appendChild(closedLabel);
       }
 
       closedTrades.forEach(function(t) {
         list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t)));
       });
 
-      // Set trades-list height to fit 1 open + separator + 3 closed
       const openH = LAYOUT.openTradeHeight + 8;
-      const sepH = LAYOUT.separatorHeight;
+      const sepH = LAYOUT.separatorHeight + LAYOUT.closedLabelHeight;
       const closedH = 3 * (LAYOUT.closedTradeHeight + 8);
       list.style.maxHeight = (openH + sepH + closedH) + 'px';
     }
@@ -367,6 +448,7 @@
     function createTradeCard(trade, index) {
       const card = document.createElement('div');
       card.className = 'trade-card ' + (trade.open ? 'trade-open' : 'trade-closed');
+      card.id = 'trade-card-' + index;
       card.style.height = (trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight) + 'px';
       card.style.borderColor = pnlColor(trade.pnl);
 
@@ -381,7 +463,9 @@
 
       const pairSpan = document.createElement('span');
       pairSpan.className = 'trade-pair';
+      pairSpan.id = 'trade-pair-' + index;
       pairSpan.textContent = trade.pair;
+      pairSpan.style.color = pnlColor(trade.pnl);
 
       left.appendChild(icon);
       left.appendChild(pairSpan);
@@ -389,12 +473,60 @@
       const pnlBox = document.createElement('div');
       pnlBox.className = 'pnl-box';
       pnlBox.id = 'trade-pnl-' + index;
-      pnlBox.style.fontSize = '13px';
+
+      if (trade.open) {
+        const pnlH = Math.round(LAYOUT.openTradeHeight * LAYOUT.openPnlHeightRatio);
+        pnlBox.style.height = pnlH + 'px';
+        const fontSize = Math.round(pnlH * 0.45);
+        pnlBox.style.fontSize = fontSize + 'px';
+        pnlBox.style.lineHeight = pnlH + 'px';
+      } else {
+        pnlBox.style.fontSize = '13px';
+      }
+
       updatePnlBox(pnlBox, trade.pnl);
 
       card.appendChild(left);
       card.appendChild(pnlBox);
       return card;
+    }
+
+    // =====================================================
+    // PULSING
+    // =====================================================
+    function triggerPulse() {
+      const dot = document.getElementById('pulse-dot');
+      if (!dot) return;
+
+      // Flash dot bright
+      dot.style.opacity = '1';
+      setTimeout(function() { dot.style.opacity = '0.3'; }, PULSE_DURATION_MS);
+
+      // Flash open trade card borders + pair names to bright color
+      MOCK_TRADES.forEach(function(t, i) {
+        if (!t.open) return;
+        const card = document.getElementById('trade-card-' + i);
+        const pair = document.getElementById('trade-pair-' + i);
+        const pnlEl = document.getElementById('trade-pnl-' + i);
+        const brightColor = pnlColorBright(t.pnl);
+        const baseColor = pnlColor(t.pnl);
+
+        if (card) card.style.borderColor = brightColor;
+        if (pair) pair.style.color = brightColor;
+        if (pnlEl) {
+          pnlEl.style.color = brightColor;
+          pnlEl.style.borderColor = brightColor;
+        }
+
+        setTimeout(function() {
+          if (card) card.style.borderColor = baseColor;
+          if (pair) pair.style.color = baseColor;
+          if (pnlEl) {
+            pnlEl.style.color = baseColor;
+            pnlEl.style.borderColor = baseColor;
+          }
+        }, PULSE_DURATION_MS);
+      });
     }
 
     // =====================================================
@@ -410,16 +542,47 @@
       // Update individual trade PnL displays
       MOCK_TRADES.forEach(function(t, i) {
         const pnlEl = document.getElementById('trade-pnl-' + i);
+        const pairEl = document.getElementById('trade-pair-' + i);
         if (pnlEl) {
           updatePnlBox(pnlEl, t.pnl);
-          const card = pnlEl.closest('.trade-card');
+          const card = document.getElementById('trade-card-' + i);
           if (card) card.style.borderColor = pnlColor(t.pnl);
+        }
+        if (pairEl) {
+          pairEl.style.color = pnlColor(t.pnl);
         }
       });
 
       // All-time PnL = sum of all trades
       const totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + t.pnl; }, 0);
       updatePnlBox('alltime-pnl', totalPnl);
+
+      // Trigger visual pulse synced with data update
+      triggerPulse();
+    }
+
+    // =====================================================
+    // TYPEWRITER QUOTE
+    // =====================================================
+    function startTypewriter() {
+      const textEl = document.getElementById('quote-text');
+      let charIndex = 0;
+
+      function typeNext() {
+        if (charIndex < QUOTE_TEXT.length) {
+          textEl.textContent += QUOTE_TEXT[charIndex];
+          charIndex++;
+          // Random delay: QUOTE_BASE_INTERVAL ± QUOTE_VARIATION (uniform distribution)
+          const delay = QUOTE_BASE_INTERVAL + (Math.random() - 0.5) * 2 * QUOTE_VARIATION;
+          setTimeout(typeNext, Math.max(30, delay));
+        } else {
+          // Hide cursor when done
+          const cursor = document.getElementById('quote-cursor');
+          if (cursor) cursor.style.display = 'none';
+        }
+      }
+
+      typeNext();
     }
 
     // =====================================================
@@ -437,8 +600,17 @@
       // Position sections immediately so they don't jump
       layoutSections();
       renderTrades();
+
+      // Initialize pulse dot color and state
+      const dot = document.getElementById('pulse-dot');
+      dot.style.backgroundColor = COLORS.profit;
+      dot.style.opacity = '0.3';
+
       updateSimulation();
-      setInterval(updateSimulation, 1000);
+      setInterval(updateSimulation, UPDATE_INTERVAL_MS);
+
+      // Start typewriter
+      startTypewriter();
 
       // --- 1. Fade in background from black (500ms) ---
       await animate(500, t => { bg.style.opacity = easeOutCubic(t); });
