@@ -34,8 +34,6 @@
       opacity: 0;
       will-change: transform, opacity;
     }
-
-    /* All-time profit (inside images-section, positioned absolutely) */
     #alltime-section {
       position: absolute;
       background: rgba(0, 0, 0, 0.7);
@@ -50,8 +48,6 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-
-    /* PnL number boxes (shared style for all-time and trades) */
     .pnl-box {
       box-sizing: content-box;
       font-family: 'Courier New', Consolas, monospace;
@@ -62,11 +58,11 @@
       padding: 4px 10px;
       text-align: right;
       white-space: nowrap;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
       width: 17ch;
     }
-
-    /* Trades section */
     #trades-section {
       background: rgba(0, 0, 0, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -82,29 +78,30 @@
       margin-bottom: 12px;
       letter-spacing: 0.02em;
     }
-    #trades-list {
-      overflow-y: auto;
-    }
-
-    /* Pulsing dot next to OTWARTE POZYCJE */
-    .pulse-dot {
+    #trades-list { overflow-y: auto; }
+    .pulse-dot-wrapper {
+      position: relative;
       display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 10px; height: 10px;
       margin-left: 10px;
-      transition: opacity 0.3s ease-out;
     }
-
-    /* Closed trades label */
+    .pulse-dot {
+      position: absolute;
+      top: 0; left: 0;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .pulse-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
     .closed-label {
       font-size: 0.85rem;
       color: #888;
       margin-bottom: 8px;
       letter-spacing: 0.02em;
     }
-
-    /* Trade cards */
     .trade-card {
       display: flex;
       align-items: center;
@@ -114,37 +111,50 @@
       padding: 0 12px;
       margin-bottom: 8px;
       background: rgba(0, 0, 0, 0.3);
-      transition: border-color 0.3s ease-out;
     }
     .trade-left {
       display: flex;
       align-items: center;
+      flex-shrink: 0;
     }
-    .trade-icon {
-      width: 24px;
-      height: 24px;
-      margin-right: 10px;
-    }
+    .trade-icon { width: 24px; height: 24px; margin-right: 10px; }
     .trade-pair {
+      font-family: 'Tahoma', 'Arial', sans-serif;
       font-weight: bold;
       font-size: 1rem;
-      transition: color 0.3s ease-out;
     }
-    .trade-card .pnl-box {
-      font-size: 13px;
+    .trade-direction {
+      font-family: 'Tahoma', 'Arial', sans-serif;
+      font-weight: bold;
+      font-size: 0.8rem;
+      display: inline-block;
+      width: 65px;
+      margin-left: 8px;
     }
-    .trade-open .pnl-box {
+    .trade-info {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      flex-shrink: 0;
+      margin-left: 12px;
+      font-size: 0.75rem;
+      white-space: nowrap;
     }
+    .trade-info-label { color: #888; margin-right: 3px; }
+    .trade-info-price {
+      font-family: 'Courier New', Consolas, monospace;
+      color: #fff;
+      margin-right: 10px;
+    }
+    .trade-info-pct {
+      font-family: 'Courier New', Consolas, monospace;
+      font-weight: bold;
+    }
+    .trade-card .pnl-box { font-size: 13px; }
     .trades-separator {
       border: none;
       border-top: 1px solid rgba(255, 255, 255, 0.15);
       margin: 12px 0;
     }
-
-    /* Quote container */
     #quote-section {
       background: rgba(0, 0, 0, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -157,21 +167,13 @@
       line-height: 1.5;
       min-height: 40px;
     }
-    #quote-text {
-      display: inline;
-    }
+    #quote-text { display: inline; }
     #quote-cursor {
       display: inline-block;
-      width: 8px;
-      height: 1em;
+      width: 8px; height: 1em;
       background: #fff;
       vertical-align: text-bottom;
       margin-left: 1px;
-      animation: blink-cursor 0.6s steps(1) infinite;
-    }
-    @keyframes blink-cursor {
-      0%, 50% { opacity: 1; }
-      50.01%, 100% { opacity: 0; }
     }
   </style>
 </head>
@@ -185,499 +187,365 @@
       <img id="sie" class="anim-img" src="sie.png">
       <img id="dots" class="anim-img" src="dots.png">
       <img id="skonczyl" class="anim-img" src="skonczyl.png">
-
       <div id="alltime-section">
         <div class="section-label">All-time profit</div>
         <div id="alltime-pnl" class="pnl-box" style="font-size:60px"></div>
       </div>
     </div>
-
     <div id="trades-section">
-      <div class="section-header">OTWARTE POZYCJE<span id="pulse-dot" class="pulse-dot"></span></div>
+      <div class="section-header">OTWARTE POZYCJE<span class="pulse-dot-wrapper"><span id="pulse-dot" class="pulse-dot"></span></span></div>
       <div id="trades-list"></div>
     </div>
-
     <div id="quote-section">
       <span id="quote-text"></span><span id="quote-cursor"></span>
     </div>
   </div>
-
   <script>
-    // =====================================================
-    // CONFIGURABLE COLORS
-    // =====================================================
-    const COLORS = {
+    var COLORS = {
       profit: '#4caf50',
-      profitBright: '#66ff6a',
+      profitBright: '#7aff7e',
       loss: '#e53935',
-      lossBright: '#ff6b68',
+      lossBright: '#ff7b78',
     };
-
-    // =====================================================
-    // CONFIGURABLE OFFSETS — adjust these to taste
-    // =====================================================
-    const LAYOUT = {
+    var LAYOUT = {
       scale: 0.7,
       zaor: { x: 20, y: 20 },
-      captionGapX: 20,
-      captionBaseY: 100,
-
-      czy:      { x: 0,   y: 0 },
-      zaorski:  { x: 210, y: 1 },
-      sie:      { x: 0,   y: 127 },
-      dots:     { x: 145, y: 173 },
+      captionGapX: 20, captionBaseY: 100,
+      czy: { x: 0, y: 0 }, zaorski: { x: 210, y: 1 },
+      sie: { x: 0, y: 127 }, dots: { x: 145, y: 173 },
       skonczyl: { x: 175, y: 125 },
-
-      // All-time profit offset from (captionOrigin.x, captionBottom)
       alltimeProfit: { x: 0, y: 25 },
-
-      // Trades section
-      tradesTopMargin: 40,
-      tradesWidthPercent: 40,
-
-      // Trade card heights
-      closedTradeHeight: 52,
-      openTradeHeight: 80,
-
-      // Open trade PnL box height as fraction of card height
-      openPnlHeightRatio: 0.75,
-
-      // Separator height + "Zamknięte pozycje" label height with margins
-      separatorHeight: 17,
-      closedLabelHeight: 28,
+      tradesTopMargin: 40, tradesWidthPercent: 40,
+      closedTradeHeight: 52, openTradeHeight: 80,
+      pnlHeightRatio: 0.80,
+      separatorHeight: 17, closedLabelHeight: 28,
     };
+    var MAX_PNL_VALUE = 999999999;
+    var TRADE_FLUCTUATION_RANGE = 2000;
+    var UPDATE_INTERVAL_MS = 1000;
+    var PULSE_PERIOD_MS = 1000;
+    var RING_DURATION_MS = 600;
+    var QUOTE_TEXT = 'Rolą spekulanta jest przywrócić rynkową równowagę. Są przy tym emocje, jest zabawa, ale i ryzyko. Jeśli spekulant źle oceni sytuację, a punkt równowagi jest w innym miejscu, to przegra.';
+    var QUOTE_BASE_INTERVAL = 100;
+    var QUOTE_VARIATION = 70;
 
-    const MAX_PNL_VALUE = 999999999;
-    const TRADE_FLUCTUATION_RANGE = 2000;
-    const UPDATE_INTERVAL_MS = 1000;
-
-    // Pulse duration (how long the "bright" flash lasts)
-    const PULSE_DURATION_MS = 300;
-
-    // Quote
-    const QUOTE_TEXT = 'Rolą spekulanta jest przywrócić rynkową równowagę. Są przy tym emocje, jest zabawa, ale i ryzyko. Jeśli spekulant źle oceni sytuację, a punkt równowagi jest w innym miejscu, to przegra.';
-    const QUOTE_BASE_INTERVAL = 100;
-    const QUOTE_VARIATION = 70;
-    // =====================================================
-
-    // =====================================================
-    // MOCK TRADES
-    // =====================================================
-    const TOKEN_ICONS = {
-      'XAU/USD': 'tokens/xau.svg',
-      'XAG/USD': 'tokens/xag.svg',
-      'BTC/USD': 'tokens/btc.svg',
-      'ETH/USD': 'tokens/eth.svg',
+    var TOKEN_ICONS = {
+      'XAU/USD': 'tokens/xau.svg', 'XAG/USD': 'tokens/xag.svg',
+      'BTC/USD': 'tokens/btc.svg', 'ETH/USD': 'tokens/eth.svg',
     };
-
-    const MOCK_TRADES = [
-      { pair: 'XAU/USD', pnl: 15420,  open: true },
-      { pair: 'XAG/USD', pnl: -3200,  open: false },
-      { pair: 'BTC/USD', pnl: 8750,   open: false },
-      { pair: 'ETH/USD', pnl: -1500,  open: false },
+    var MOCK_TRADES = [
+      { pair: 'XAU/USD', pnl: 15420,  open: true,  type: 'long',  openPrice: 2341.85, currentPrice: 2341.85 },
+      { pair: 'XAG/USD', pnl: -3200,  open: false, type: 'short', openPrice: 28.423, closePrice: 29.105 },
+      { pair: 'BTC/USD', pnl: 8750,   open: false, type: 'long',  openPrice: 62480.0, closePrice: 77350.5 },
+      { pair: 'ETH/USD', pnl: -1500,  open: false, type: 'short', openPrice: 3420.12, closePrice: 3510.75 },
     ];
-
-    // =====================================================
-    // IMAGE SIZES
-    // =====================================================
-    const SIZES = {
-      zaor:     { w: 512, h: 512 },
-      czy:      { w: 191, h: 99 },
-      zaorski:  { w: 402, h: 77 },
-      sie:      { w: 141, h: 94 },
-      dots:     { w: 88,  h: 28 },
-      skonczyl: { w: 488, h: 98 },
+    var SIZES = {
+      zaor: { w: 512, h: 512 }, czy: { w: 191, h: 99 },
+      zaorski: { w: 402, h: 77 }, sie: { w: 141, h: 94 },
+      dots: { w: 88, h: 28 }, skonczyl: { w: 488, h: 98 },
     };
 
-    // =====================================================
-    // EASING & ANIMATION
-    // =====================================================
-    function easeOutCubic(t) {
-      return 1 - Math.pow(1 - t, 3);
-    }
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
     function animate(duration, onTick) {
-      return new Promise(resolve => {
-        const start = performance.now();
+      return new Promise(function(resolve) {
+        var start = performance.now();
         function frame(now) {
-          const elapsed = now - start;
-          const raw = Math.min(elapsed / duration, 1);
+          var elapsed = now - start;
+          var raw = Math.min(elapsed / duration, 1);
           onTick(raw);
-          if (raw < 1) requestAnimationFrame(frame);
-          else resolve();
+          if (raw < 1) requestAnimationFrame(frame); else resolve();
         }
         requestAnimationFrame(frame);
       });
     }
 
     function captionOrigin() {
-      return {
-        x: LAYOUT.zaor.x + SIZES.zaor.w + LAYOUT.captionGapX,
-        y: LAYOUT.zaor.y + LAYOUT.captionBaseY,
-      };
+      return { x: LAYOUT.zaor.x + SIZES.zaor.w + LAYOUT.captionGapX, y: LAYOUT.zaor.y + LAYOUT.captionBaseY };
     }
-
     function finalPos(key) {
       if (key === 'zaor') return { x: LAYOUT.zaor.x, y: LAYOUT.zaor.y };
-      const co = captionOrigin();
-      const off = LAYOUT[key];
+      var co = captionOrigin(); var off = LAYOUT[key];
       return { x: co.x + off.x, y: co.y + off.y };
     }
-
     function place(el, x, y, opacity, rotation) {
-      const rot = rotation !== undefined ? rotation : 0;
+      var rot = rotation !== undefined ? rotation : 0;
       el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + rot + 'deg)';
       el.style.opacity = opacity;
     }
-
-    const BOB_PERIOD = 4000;
-    const BOB_AMPLITUDE = 5;
-
-    function bobAngle(now) {
-      return BOB_AMPLITUDE * Math.sin((-2 * Math.PI * now) / BOB_PERIOD);
+    var BOB_PERIOD = 4000, BOB_AMPLITUDE = 5;
+    function bobAngle(now) { return BOB_AMPLITUDE * Math.sin((-2 * Math.PI * now) / BOB_PERIOD); }
+    function startBobbing(el, getBasePos) {
+      function tick(now) { var pos = getBasePos(); place(el, pos.x, pos.y, pos.opacity, bobAngle(now)); requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
     }
 
-    function startBobbing(el, getBasePos) {
+    function hexToRgb(hex) {
+      return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+    }
+    function lerpColor(c1, c2, t) {
+      var a = hexToRgb(c1), b = hexToRgb(c2);
+      return 'rgb(' + Math.round(a[0]+(b[0]-a[0])*t) + ',' + Math.round(a[1]+(b[1]-a[1])*t) + ',' + Math.round(a[2]+(b[2]-a[2])*t) + ')';
+    }
+    function pulseT(now) { return (1 + Math.sin(2 * Math.PI * now / PULSE_PERIOD_MS)) / 2; }
+    function currentPnlColor(pnl, t) {
+      var base = pnl >= 0 ? COLORS.profit : COLORS.loss;
+      var bright = pnl >= 0 ? COLORS.profitBright : COLORS.lossBright;
+      return lerpColor(base, bright, t);
+    }
+
+    function formatPnl(value) {
+      var rounded = Math.round(value);
+      rounded = Math.max(-MAX_PNL_VALUE, Math.min(MAX_PNL_VALUE, rounded));
+      var sign = rounded >= 0 ? '+' : '-';
+      var abs = Math.abs(rounded);
+      return sign + abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' PLN';
+    }
+    function formatPriceSix(value) { return value.toFixed(6); }
+    function formatPct(openP, closeP) {
+      if (openP === 0) return '(+0.0%)';
+      var pct = ((closeP - openP) / openP) * 100;
+      return '(' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%)';
+    }
+    function pnlColor(value) { return value >= 0 ? COLORS.profit : COLORS.loss; }
+    function updatePnlBox(el, value) {
+      if (typeof el === 'string') el = document.getElementById(el);
+      el.textContent = formatPnl(value);
+      var color = pnlColor(value);
+      el.style.borderColor = color; el.style.color = color;
+    }
+
+    function layoutSections() {
+      var section = document.getElementById('images-section');
+      var tradesSection = document.getElementById('trades-section');
+      var quoteSection = document.getElementById('quote-section');
+      var bottomEdge = Math.max(LAYOUT.zaor.y + SIZES.zaor.h, finalPos('sie').y + SIZES.sie.h, finalPos('skonczyl').y + SIZES.skonczyl.h);
+      section.style.transform = 'scale(' + LAYOUT.scale + ')';
+      section.style.height = (bottomEdge + 20) + 'px';
+      section.style.marginBottom = -((1 - LAYOUT.scale) * (bottomEdge + 20)) + 'px';
+      var co = captionOrigin();
+      var captionBottom = Math.max(finalPos('skonczyl').y + SIZES.skonczyl.h, finalPos('sie').y + SIZES.sie.h);
+      var alltimeEl = document.getElementById('alltime-section');
+      alltimeEl.style.left = (co.x + LAYOUT.alltimeProfit.x) + 'px';
+      alltimeEl.style.top = (captionBottom + LAYOUT.alltimeProfit.y) + 'px';
+      var scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
+      tradesSection.style.marginLeft = scaledLeft + 'px';
+      tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
+      tradesSection.style.width = LAYOUT.tradesWidthPercent + '%';
+      quoteSection.style.marginLeft = scaledLeft + 'px';
+      quoteSection.style.width = LAYOUT.tradesWidthPercent + '%';
+    }
+
+    function renderTrades() {
+      var list = document.getElementById('trades-list');
+      list.innerHTML = '';
+      var openTrades = MOCK_TRADES.filter(function(t) { return t.open; });
+      var closedTrades = MOCK_TRADES.filter(function(t) { return !t.open; });
+      openTrades.forEach(function(t) { list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t))); });
+      if (openTrades.length > 0 && closedTrades.length > 0) {
+        var sep = document.createElement('hr'); sep.className = 'trades-separator'; list.appendChild(sep);
+        var cl = document.createElement('div'); cl.className = 'closed-label'; cl.textContent = 'Zamknięte pozycje'; list.appendChild(cl);
+      }
+      closedTrades.forEach(function(t) { list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t))); });
+      var openH = LAYOUT.openTradeHeight + 8;
+      var sepH = LAYOUT.separatorHeight + LAYOUT.closedLabelHeight;
+      var closedH = 3 * (LAYOUT.closedTradeHeight + 8);
+      list.style.maxHeight = (openH + sepH + closedH) + 'px';
+    }
+
+    function createTradeCard(trade, index) {
+      var card = document.createElement('div');
+      card.className = 'trade-card ' + (trade.open ? 'trade-open' : 'trade-closed');
+      card.id = 'trade-card-' + index;
+      var cardH = trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight;
+      card.style.height = cardH + 'px';
+      card.style.borderColor = pnlColor(trade.pnl);
+
+      var left = document.createElement('div'); left.className = 'trade-left';
+      var icon = document.createElement('img'); icon.className = 'trade-icon';
+      var token = trade.pair.split('/')[0].toLowerCase();
+      icon.src = TOKEN_ICONS[trade.pair] || ('tokens/' + token + '.svg'); icon.alt = token;
+
+      var pairSpan = document.createElement('span');
+      pairSpan.className = 'trade-pair'; pairSpan.id = 'trade-pair-' + index;
+      pairSpan.textContent = trade.pair; pairSpan.style.color = pnlColor(trade.pnl);
+
+      var dirSpan = document.createElement('span');
+      dirSpan.className = 'trade-direction'; dirSpan.id = 'trade-dir-' + index;
+      var isLong = trade.type === 'long';
+      dirSpan.textContent = isLong ? 'Long ↑' : 'Short ↓';
+      dirSpan.style.color = isLong ? COLORS.profit : COLORS.loss;
+
+      var info = document.createElement('span');
+      info.className = 'trade-info'; info.id = 'trade-info-' + index;
+      buildTradeInfo(info, trade, index);
+
+      left.appendChild(icon); left.appendChild(pairSpan);
+      left.appendChild(dirSpan); left.appendChild(info);
+
+      var pnlBox = document.createElement('div');
+      pnlBox.className = 'pnl-box'; pnlBox.id = 'trade-pnl-' + index;
+      var pnlH = Math.round(cardH * LAYOUT.pnlHeightRatio);
+      pnlBox.style.height = pnlH + 'px';
+      var fontSize = trade.open ? Math.round(pnlH * 0.40) : Math.round(pnlH * 0.45);
+      pnlBox.style.fontSize = fontSize + 'px';
+      pnlBox.style.lineHeight = pnlH + 'px';
+      updatePnlBox(pnlBox, trade.pnl);
+
+      card.appendChild(left); card.appendChild(pnlBox);
+      return card;
+    }
+
+    function buildTradeInfo(el, trade, index) {
+      el.innerHTML = '';
+      var lbl = document.createElement('span'); lbl.className = 'trade-info-label'; lbl.textContent = 'Otw.:'; el.appendChild(lbl);
+      var price = document.createElement('span'); price.className = 'trade-info-price'; price.textContent = formatPriceSix(trade.openPrice); el.appendChild(price);
+      if (trade.open) {
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Cena:'; el.appendChild(lbl2);
+        var price2 = document.createElement('span'); price2.className = 'trade-info-price'; price2.id = 'trade-current-price-' + index;
+        price2.textContent = formatPriceSix(trade.currentPrice); el.appendChild(price2);
+      } else {
+        var lbl2 = document.createElement('span'); lbl2.className = 'trade-info-label'; lbl2.textContent = 'Zamk.:'; el.appendChild(lbl2);
+        var pctSpan = document.createElement('span'); pctSpan.className = 'trade-info-pct';
+        pctSpan.textContent = formatPct(trade.openPrice, trade.closePrice);
+        pctSpan.style.color = pnlColor(trade.pnl); el.appendChild(pctSpan);
+      }
+    }
+
+    function startContinuousPulse() {
+      var dot = document.getElementById('pulse-dot');
+      dot.style.backgroundColor = COLORS.profit;
       function tick(now) {
-        const pos = getBasePos();
-        place(el, pos.x, pos.y, pos.opacity, bobAngle(now));
+        var t = pulseT(now);
+        dot.style.opacity = (0.5 + 0.5 * t).toString();
+        dot.style.backgroundColor = lerpColor(COLORS.profit, COLORS.profitBright, t);
+        MOCK_TRADES.forEach(function(trade, i) {
+          if (!trade.open) return;
+          var color = currentPnlColor(trade.pnl, t);
+          var card = document.getElementById('trade-card-' + i);
+          var pair = document.getElementById('trade-pair-' + i);
+          var pnlEl = document.getElementById('trade-pnl-' + i);
+          if (card) card.style.borderColor = color;
+          if (pair) pair.style.color = color;
+          if (pnlEl) { pnlEl.style.color = color; pnlEl.style.borderColor = color; }
+        });
         requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
     }
 
-    // =====================================================
-    // PNL FORMATTING
-    // =====================================================
-    function formatPnl(value) {
-      var rounded = Math.round(value);
-      rounded = Math.max(-MAX_PNL_VALUE, Math.min(MAX_PNL_VALUE, rounded));
-      const sign = rounded >= 0 ? '+' : '-';
-      const abs = Math.abs(rounded);
-      const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-      return sign + formatted + ' PLN';
-    }
-
-    function pnlColor(value) {
-      return value >= 0 ? COLORS.profit : COLORS.loss;
-    }
-
-    function pnlColorBright(value) {
-      return value >= 0 ? COLORS.profitBright : COLORS.lossBright;
-    }
-
-    function updatePnlBox(el, value) {
-      if (typeof el === 'string') el = document.getElementById(el);
-      el.textContent = formatPnl(value);
-      const color = pnlColor(value);
-      el.style.borderColor = color;
-      el.style.color = color;
-    }
-
-    // =====================================================
-    // LAYOUT
-    // =====================================================
-    function layoutSections() {
-      const section = document.getElementById('images-section');
-      const tradesSection = document.getElementById('trades-section');
-      const quoteSection = document.getElementById('quote-section');
-
-      const bottomEdge = Math.max(
-        LAYOUT.zaor.y + SIZES.zaor.h,
-        finalPos('sie').y + SIZES.sie.h,
-        finalPos('skonczyl').y + SIZES.skonczyl.h
-      );
-
-      section.style.transform = 'scale(' + LAYOUT.scale + ')';
-      section.style.height = (bottomEdge + 20) + 'px';
-      section.style.marginBottom = -((1 - LAYOUT.scale) * (bottomEdge + 20)) + 'px';
-
-      const co = captionOrigin();
-      const captionBottom = Math.max(
-        finalPos('skonczyl').y + SIZES.skonczyl.h,
-        finalPos('sie').y + SIZES.sie.h
-      );
-      const alltimeEl = document.getElementById('alltime-section');
-      alltimeEl.style.left = (co.x + LAYOUT.alltimeProfit.x) + 'px';
-      alltimeEl.style.top = (captionBottom + LAYOUT.alltimeProfit.y) + 'px';
-
-      const scaledLeft = LAYOUT.zaor.x * LAYOUT.scale;
-      tradesSection.style.marginLeft = scaledLeft + 'px';
-      tradesSection.style.marginTop = LAYOUT.tradesTopMargin + 'px';
-      tradesSection.style.width = LAYOUT.tradesWidthPercent + '%';
-
-      quoteSection.style.marginLeft = scaledLeft + 'px';
-      quoteSection.style.width = LAYOUT.tradesWidthPercent + '%';
-    }
-
-    // =====================================================
-    // TRADES RENDERING
-    // =====================================================
-    function renderTrades() {
-      const list = document.getElementById('trades-list');
-      list.innerHTML = '';
-
-      const openTrades = MOCK_TRADES.filter(function(t) { return t.open; });
-      const closedTrades = MOCK_TRADES.filter(function(t) { return !t.open; });
-
-      openTrades.forEach(function(t) {
-        list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t)));
-      });
-
-      if (openTrades.length > 0 && closedTrades.length > 0) {
-        const sep = document.createElement('hr');
-        sep.className = 'trades-separator';
-        list.appendChild(sep);
-
-        const closedLabel = document.createElement('div');
-        closedLabel.className = 'closed-label';
-        closedLabel.textContent = 'Zamkni\u0119te pozycje';
-        list.appendChild(closedLabel);
+    function spawnRing() {
+      var wrapper = document.querySelector('.pulse-dot-wrapper');
+      if (!wrapper) return;
+      var ring = document.createElement('span'); ring.className = 'pulse-ring';
+      var dotSize = 10;
+      ring.style.width = dotSize + 'px'; ring.style.height = dotSize + 'px';
+      ring.style.top = '0px'; ring.style.left = '0px';
+      ring.style.border = '2px solid ' + COLORS.profitBright;
+      ring.style.opacity = '1';
+      wrapper.appendChild(ring);
+      var start = performance.now();
+      function animateRing(now) {
+        var elapsed = now - start;
+        var raw = Math.min(elapsed / RING_DURATION_MS, 1);
+        var e = easeOutCubic(raw);
+        var size = dotSize * (1 + e);
+        var offset = (size - dotSize) / 2;
+        ring.style.width = size + 'px'; ring.style.height = size + 'px';
+        ring.style.top = -offset + 'px'; ring.style.left = -offset + 'px';
+        ring.style.opacity = (1 - e).toString();
+        if (raw < 1) requestAnimationFrame(animateRing);
+        else wrapper.removeChild(ring);
       }
-
-      closedTrades.forEach(function(t) {
-        list.appendChild(createTradeCard(t, MOCK_TRADES.indexOf(t)));
-      });
-
-      const openH = LAYOUT.openTradeHeight + 8;
-      const sepH = LAYOUT.separatorHeight + LAYOUT.closedLabelHeight;
-      const closedH = 3 * (LAYOUT.closedTradeHeight + 8);
-      list.style.maxHeight = (openH + sepH + closedH) + 'px';
+      requestAnimationFrame(animateRing);
     }
 
-    function createTradeCard(trade, index) {
-      const card = document.createElement('div');
-      card.className = 'trade-card ' + (trade.open ? 'trade-open' : 'trade-closed');
-      card.id = 'trade-card-' + index;
-      card.style.height = (trade.open ? LAYOUT.openTradeHeight : LAYOUT.closedTradeHeight) + 'px';
-      card.style.borderColor = pnlColor(trade.pnl);
-
-      const left = document.createElement('div');
-      left.className = 'trade-left';
-
-      const icon = document.createElement('img');
-      icon.className = 'trade-icon';
-      const token = trade.pair.split('/')[0].toLowerCase();
-      icon.src = TOKEN_ICONS[trade.pair] || ('tokens/' + token + '.svg');
-      icon.alt = token;
-
-      const pairSpan = document.createElement('span');
-      pairSpan.className = 'trade-pair';
-      pairSpan.id = 'trade-pair-' + index;
-      pairSpan.textContent = trade.pair;
-      pairSpan.style.color = pnlColor(trade.pnl);
-
-      left.appendChild(icon);
-      left.appendChild(pairSpan);
-
-      const pnlBox = document.createElement('div');
-      pnlBox.className = 'pnl-box';
-      pnlBox.id = 'trade-pnl-' + index;
-
-      if (trade.open) {
-        const pnlH = Math.round(LAYOUT.openTradeHeight * LAYOUT.openPnlHeightRatio);
-        pnlBox.style.height = pnlH + 'px';
-        const fontSize = Math.round(pnlH * 0.45);
-        pnlBox.style.fontSize = fontSize + 'px';
-        pnlBox.style.lineHeight = pnlH + 'px';
-      } else {
-        pnlBox.style.fontSize = '13px';
-      }
-
-      updatePnlBox(pnlBox, trade.pnl);
-
-      card.appendChild(left);
-      card.appendChild(pnlBox);
-      return card;
-    }
-
-    // =====================================================
-    // PULSING
-    // =====================================================
-    function triggerPulse() {
-      const dot = document.getElementById('pulse-dot');
-      if (!dot) return;
-
-      // Flash dot bright
-      dot.style.opacity = '1';
-      setTimeout(function() { dot.style.opacity = '0.3'; }, PULSE_DURATION_MS);
-
-      // Flash open trade card borders + pair names to bright color
-      MOCK_TRADES.forEach(function(t, i) {
-        if (!t.open) return;
-        const card = document.getElementById('trade-card-' + i);
-        const pair = document.getElementById('trade-pair-' + i);
-        const pnlEl = document.getElementById('trade-pnl-' + i);
-        const brightColor = pnlColorBright(t.pnl);
-        const baseColor = pnlColor(t.pnl);
-
-        if (card) card.style.borderColor = brightColor;
-        if (pair) pair.style.color = brightColor;
-        if (pnlEl) {
-          pnlEl.style.color = brightColor;
-          pnlEl.style.borderColor = brightColor;
-        }
-
-        setTimeout(function() {
-          if (card) card.style.borderColor = baseColor;
-          if (pair) pair.style.color = baseColor;
-          if (pnlEl) {
-            pnlEl.style.color = baseColor;
-            pnlEl.style.borderColor = baseColor;
-          }
-        }, PULSE_DURATION_MS);
-      });
-    }
-
-    // =====================================================
-    // SIMULATION
-    // =====================================================
     function updateSimulation() {
       MOCK_TRADES.forEach(function(t) {
         if (t.open) {
           t.pnl += (Math.random() - 0.5) * TRADE_FLUCTUATION_RANGE;
+          t.currentPrice += (Math.random() - 0.5) * t.currentPrice * 0.001;
         }
       });
-
-      // Update individual trade PnL displays
       MOCK_TRADES.forEach(function(t, i) {
-        const pnlEl = document.getElementById('trade-pnl-' + i);
-        const pairEl = document.getElementById('trade-pair-' + i);
-        if (pnlEl) {
-          updatePnlBox(pnlEl, t.pnl);
-          const card = document.getElementById('trade-card-' + i);
-          if (card) card.style.borderColor = pnlColor(t.pnl);
-        }
-        if (pairEl) {
-          pairEl.style.color = pnlColor(t.pnl);
+        var pnlEl = document.getElementById('trade-pnl-' + i);
+        if (pnlEl) updatePnlBox(pnlEl, t.pnl);
+        if (t.open) {
+          var priceEl = document.getElementById('trade-current-price-' + i);
+          if (priceEl) priceEl.textContent = formatPriceSix(t.currentPrice);
         }
       });
-
-      // All-time PnL = sum of all trades
-      const totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + t.pnl; }, 0);
+      var totalPnl = MOCK_TRADES.reduce(function(sum, t) { return sum + t.pnl; }, 0);
       updatePnlBox('alltime-pnl', totalPnl);
-
-      // Trigger visual pulse synced with data update
-      triggerPulse();
+      spawnRing();
     }
 
-    // =====================================================
-    // TYPEWRITER QUOTE
-    // =====================================================
     function startTypewriter() {
-      const textEl = document.getElementById('quote-text');
-      let charIndex = 0;
-
+      var textEl = document.getElementById('quote-text');
+      var charIndex = 0;
       function typeNext() {
         if (charIndex < QUOTE_TEXT.length) {
           textEl.textContent += QUOTE_TEXT[charIndex];
           charIndex++;
-          // Random delay: QUOTE_BASE_INTERVAL ± QUOTE_VARIATION (uniform distribution)
-          const delay = QUOTE_BASE_INTERVAL + (Math.random() - 0.5) * 2 * QUOTE_VARIATION;
+          var delay = QUOTE_BASE_INTERVAL + (Math.random() - 0.5) * 2 * QUOTE_VARIATION;
           setTimeout(typeNext, Math.max(30, delay));
         } else {
-          // Hide cursor when done
-          const cursor = document.getElementById('quote-cursor');
-          if (cursor) cursor.style.display = 'none';
+          setTimeout(function() {
+            var cursor = document.getElementById('quote-cursor');
+            if (cursor) cursor.style.display = 'none';
+          }, 1000);
         }
       }
-
       typeNext();
     }
 
-    // =====================================================
-    // MAIN ANIMATION SEQUENCE
-    // =====================================================
     async function run() {
-      const bg = document.getElementById('bg');
-      const elZaor = document.getElementById('zaor');
-      const elCzy = document.getElementById('czy');
-      const elZaorski = document.getElementById('img-zaorski');
-      const elSie = document.getElementById('sie');
-      const elDots = document.getElementById('dots');
-      const elSkonczyl = document.getElementById('skonczyl');
+      var bg = document.getElementById('bg');
+      var elZaor = document.getElementById('zaor');
+      var elCzy = document.getElementById('czy');
+      var elZaorski = document.getElementById('img-zaorski');
+      var elSie = document.getElementById('sie');
+      var elDots = document.getElementById('dots');
+      var elSkonczyl = document.getElementById('skonczyl');
 
-      // Position sections immediately so they don't jump
       layoutSections();
       renderTrades();
-
-      // Initialize pulse dot color and state
-      const dot = document.getElementById('pulse-dot');
-      dot.style.backgroundColor = COLORS.profit;
-      dot.style.opacity = '0.3';
-
+      startContinuousPulse();
       updateSimulation();
       setInterval(updateSimulation, UPDATE_INTERVAL_MS);
-
-      // Start typewriter
       startTypewriter();
 
-      // --- 1. Fade in background from black (500ms) ---
-      await animate(500, t => { bg.style.opacity = easeOutCubic(t); });
+      await animate(500, function(t) { bg.style.opacity = easeOutCubic(t); });
 
-      // --- 2. Slide zaor512 from left + start bobbing ---
-      const zaorFinal = finalPos('zaor');
-      const zaorStartX = zaorFinal.x - SIZES.zaor.w;
-      const zaorState = { x: zaorStartX, y: zaorFinal.y, opacity: 0 };
-      startBobbing(elZaor, () => zaorState);
-
-      await animate(1000, t => {
-        const e = easeOutCubic(t);
+      var zaorFinal = finalPos('zaor');
+      var zaorStartX = zaorFinal.x - SIZES.zaor.w;
+      var zaorState = { x: zaorStartX, y: zaorFinal.y, opacity: 0 };
+      startBobbing(elZaor, function() { return zaorState; });
+      await animate(1000, function(t) {
+        var e = easeOutCubic(t);
         zaorState.x = zaorStartX + (zaorFinal.x - zaorStartX) * e;
-        zaorState.y = zaorFinal.y;
-        zaorState.opacity = e;
+        zaorState.y = zaorFinal.y; zaorState.opacity = e;
       });
-      zaorState.x = zaorFinal.x;
-      zaorState.opacity = 1;
+      zaorState.x = zaorFinal.x; zaorState.opacity = 1;
 
-      // --- 3. Simultaneously animate czy, zaorski, sie + dots ---
-      const czyFinal = finalPos('czy');
-      const zaorskiFinal = finalPos('zaorski');
-      const sieFinal = finalPos('sie');
-      const dotsFinal = finalPos('dots');
-
+      var czyFinal = finalPos('czy'), zaorskiFinal = finalPos('zaorski');
+      var sieFinal = finalPos('sie'), dotsFinal = finalPos('dots');
       await Promise.all([
-        animate(1000, t => {
-          const e = easeOutCubic(t);
-          const startY = czyFinal.y - SIZES.czy.h;
-          place(elCzy, czyFinal.x, startY + (czyFinal.y - startY) * e, e);
-        }),
-        animate(1500, t => {
-          const e = easeOutCubic(t);
-          const startX = zaorskiFinal.x + SIZES.zaorski.w;
-          place(elZaorski, startX + (zaorskiFinal.x - startX) * e, zaorskiFinal.y, e);
-        }),
-        animate(2000, t => {
-          const e = easeOutCubic(t);
-          const startY = sieFinal.y + SIZES.sie.h;
-          place(elSie, sieFinal.x, startY + (sieFinal.y - startY) * e, e);
-        }),
-        animate(2000, t => {
-          const e = easeOutCubic(t);
-          const startY = dotsFinal.y + SIZES.dots.h;
-          place(elDots, dotsFinal.x, startY + (dotsFinal.y - startY) * e, e);
-        }),
+        animate(1000, function(t) { var e = easeOutCubic(t); var sy = czyFinal.y - SIZES.czy.h; place(elCzy, czyFinal.x, sy + (czyFinal.y - sy) * e, e); }),
+        animate(1500, function(t) { var e = easeOutCubic(t); var sx = zaorskiFinal.x + SIZES.zaorski.w; place(elZaorski, sx + (zaorskiFinal.x - sx) * e, zaorskiFinal.y, e); }),
+        animate(2000, function(t) { var e = easeOutCubic(t); var sy = sieFinal.y + SIZES.sie.h; place(elSie, sieFinal.x, sy + (sieFinal.y - sy) * e, e); }),
+        animate(2000, function(t) { var e = easeOutCubic(t); var sy = dotsFinal.y + SIZES.dots.h; place(elDots, dotsFinal.x, sy + (dotsFinal.y - sy) * e, e); }),
       ]);
-
       place(elCzy, czyFinal.x, czyFinal.y, 1);
       place(elZaorski, zaorskiFinal.x, zaorskiFinal.y, 1);
       place(elSie, sieFinal.x, sieFinal.y, 1);
       place(elDots, dotsFinal.x, dotsFinal.y, 1);
 
-      // --- 4. Wait 2 seconds, ease skonczyl + fade dots ---
-      await new Promise(r => setTimeout(r, 2000));
-
-      const skonczylFinal = finalPos('skonczyl');
+      await new Promise(function(r) { setTimeout(r, 2000); });
+      var skonczylFinal = finalPos('skonczyl');
       await Promise.all([
-        animate(1500, t => {
-          const e = easeOutCubic(t);
-          const startX = skonczylFinal.x + SIZES.skonczyl.w;
-          place(elSkonczyl, startX + (skonczylFinal.x - startX) * e, skonczylFinal.y, e);
-        }),
-        animate(1500, t => {
-          const e = easeOutCubic(t);
-          place(elDots, dotsFinal.x, dotsFinal.y, 1 - e);
-        }),
+        animate(1500, function(t) { var e = easeOutCubic(t); var sx = skonczylFinal.x + SIZES.skonczyl.w; place(elSkonczyl, sx + (skonczylFinal.x - sx) * e, skonczylFinal.y, e); }),
+        animate(1500, function(t) { var e = easeOutCubic(t); place(elDots, dotsFinal.x, dotsFinal.y, 1 - e); }),
       ]);
       place(elSkonczyl, skonczylFinal.x, skonczylFinal.y, 1);
       place(elDots, dotsFinal.x, dotsFinal.y, 0);
