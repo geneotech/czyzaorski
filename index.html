@@ -33,6 +33,7 @@
     #content {
       position: relative;
       z-index: 1;
+      visibility: hidden;
     }
     #images-section {
       position: relative;
@@ -867,6 +868,8 @@
       if (window.positionBigsb) window.positionBigsb();
       setInterval(updateSimulation, UPDATE_INTERVAL_MS);
       startTypewriter();
+
+      document.getElementById('content').style.visibility = 'visible';
 
       await animate(500, function(t) { bg.style.opacity = easeOutCubic(t); });
 
